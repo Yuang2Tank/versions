@@ -1,0 +1,335 @@
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+</style>
+</head>
+
+<body> 
+<div id="info">HW0
+  <br/></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/DDSLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script>
+var camera, scene, renderer;
+var keyboard = new KeyboardState();
+var add = false;
+var thomas = new THREE.Object3D();
+(function() {
+  Math.clamp = function(val,min,max){
+    return Math.min(Math.max(val,min),max);
+    
+  }})();
+init();
+animate();
+
+function unitize (object, targetSize) {  
+	
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+	
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+	
+	// uniform scaling according to objSize
+	var objSize = findMax (size);
+	var scaleSet = targetSize/objSize;
+				
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+	
+	return theObject;
+	
+	
+	// helper function
+	function findMax(v) {
+		if (v.x > v.y) {
+			return v.x > v.z ? v.x : v.z;
+		} else { // v.y > v.x
+			return v.y > v.z ? v.y : v.z;
+		} 
+	}
+			
+}
+
+function init() {
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.z = 500;
+  scene.add(camera);
+
+  var ambient = new THREE.AmbientLight(0x444444);
+  scene.add(ambient);
+
+  var directionalLight = new THREE.DirectionalLight(0xffffff);
+  directionalLight.position.set(0, 1, 1).normalize();
+  scene.add(directionalLight);
+  
+  var onProgress = function(xhr) {
+    if (xhr.lengthComputable) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
+	  //$('#download').text(Math.round(percentComplete, 2) + "%");
+      console.log(Math.round(percentComplete, 2) + '% downloaded');
+    }
+  };
+ 
+  var onError = function(xhr) {};
+  
+  let gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  scene.add(gridXZ);
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+
+  let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  document.body.appendChild(renderer.domElement);
+  var train = new THREE.Object3D();
+  var rail = new THREE.Object3D();
+  var head = new THREE.Object3D();
+  
+  
+////////////////////////////////////////////////////////////////////////
+  var mtlLoader = new THREE.MTLLoader();
+  mtlLoader.setPath('obj/');
+ 	mtlLoader.load('TRAIN/train.mtl', function(materials) {
+	
+    materials.preload();
+
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.setPath('obj/');
+    objLoader.load('TRAIN/train.obj', function(object) {
+	
+            var theObject =  unitize (object, 20);
+			//theObject.rotation.y = Math.PI/2;
+			var theBox;
+			theBox = new THREE.BoxHelper(theObject);
+			theObject.rotation.y = Math.PI/4 - 0.15 + Math.PI;
+			train.add(theObject);
+            //scene.add(theObject, theBox);
+
+			//////// MATERIAL ADJUSTMENT for porsche ///////////////
+			// transparent window: double-side fix
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+				});
+
+
+    }, onProgress, onError);
+
+  });
+  
+  for(let i = 0; i<5; i++){
+    let rails = new THREE.Object3D();
+	var mtlLoader1 = new THREE.MTLLoader();
+	  mtlLoader1.setPath('obj/');
+		mtlLoader1.load('Rail/Rails.mtl', function(materials) {
+		
+		materials.preload();
+
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('obj/');
+		objLoader.load('Rail/Rails.obj', function(object) {
+		
+				var theObject =  unitize (object, 20);
+				//theObject.rotation.y = Math.PI/2;
+				//var theBox;
+				//theBox = new THREE.BoxHelper(theObject);
+				theObject.rotation.y = Math.PI/2;
+				rails.add(theObject);
+				//scene.add(theObject, theBox);
+
+				//////// MATERIAL ADJUSTMENT for porsche ///////////////
+				// transparent window: double-side fix
+				object.traverse (
+					function(mesh) {
+						if (mesh instanceof THREE.Mesh) {
+							mesh.material.side = THREE.DoubleSide;
+						}
+					});
+
+
+		}, onProgress, onError);
+
+	  });
+	rails.position.set( 40 - i*20, 0, -30);
+	scene.add(rails);
+  }
+  for(let i = 0; i<5; i++){
+    let rails = new THREE.Object3D();
+	var mtlLoader1 = new THREE.MTLLoader();
+	  mtlLoader1.setPath('obj/');
+		mtlLoader1.load('Rail/Rails.mtl', function(materials) {
+		
+		materials.preload();
+
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('obj/');
+		objLoader.load('Rail/Rails.obj', function(object) {
+		
+				var theObject =  unitize (object, 20);
+				//theObject.rotation.y = Math.PI/2;
+				//var theBox;
+				//theBox = new THREE.BoxHelper(theObject);
+				theObject.rotation.y = Math.PI/2;
+				rails.add(theObject);
+				//scene.add(theObject, theBox);
+
+				//////// MATERIAL ADJUSTMENT for porsche ///////////////
+				// transparent window: double-side fix
+				object.traverse (
+					function(mesh) {
+						if (mesh instanceof THREE.Mesh) {
+							mesh.material.side = THREE.DoubleSide;
+						}
+					});
+
+
+		}, onProgress, onError);
+
+	  });
+	rails.position.set( 40 - i*20, 0, 30);
+	scene.add(rails);
+  }
+  
+  mtlLoader = new THREE.MTLLoader();
+	  mtlLoader.setPath('obj/');
+		mtlLoader.load('HEAD/head.mtl', function(materials) {
+		
+		materials.preload();
+
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('obj/');
+		objLoader.load('HEAD/head.obj', function(object) {
+		
+				var theObject =  unitize (object, 8);
+				//theObject.rotation.y = Math.PI/2;
+				//var theBox;
+				//theBox = new THREE.BoxHelper(theObject);
+				theObject.rotation.x = -Math.PI/2;
+				theObject.rotation.z = -Math.PI/2;
+				head.add(theObject);
+				//scene.add(theObject, theBox);
+
+				//////// MATERIAL ADJUSTMENT for porsche ///////////////
+				// transparent window: double-side fix
+				object.traverse (
+					function(mesh) {
+						if (mesh instanceof THREE.Mesh) {
+							mesh.material.side = THREE.DoubleSide;
+						}
+					});
+
+
+		}, onProgress, onError);
+
+	  });
+  //rail.position.set(40, 0, -30);
+  //let rails = rail.clone();
+  //rails.position.set(20, 0, -30);
+  train.position.set(0, 1 ,-30);
+  head.position.set(-10, 10, -30);
+  thomas.add(train, head);
+  circletrail(30, 0, 45, Math.PI/2, -51, 0, 1);
+  circletrail(27.8, Math.PI/2, 45, Math.PI/2, -51, 0.5, 0.2);
+  circletrail(32, Math.PI/2, 45, Math.PI/2, -51, 0.5, 0.2);
+  circletrail(30, 0, 45, Math.PI*3/2, 51, 0, 1);
+  circletrail(27.8, Math.PI/2, 45, Math.PI*3/2, 51, 0.5, 0.2);
+  circletrail(32, Math.PI/2, 45, Math.PI*3/2, 51, 0.5, 0.2);
+  scene.add(thomas, rail);
+
+}
+function circletrail( R, rotate, cuts, start, posx, posy, thick){
+  let angle = Math.PI/cuts;
+  let tmp = angle/2;
+  let box1 = new THREE.Mesh(new THREE.BoxGeometry( thick, 0.5, 7.5), new THREE.MeshPhongMaterial());
+    box1.position.set( R*Math.cos(tmp + start) + posx, posy, -R*Math.sin(tmp + start));
+    scene.add(box1);
+	box1.rotation.y = tmp + rotate;
+  for(let i = 1 ; i < cuts ; i++){
+    tmp += angle;
+    let box = new THREE.Mesh(new THREE.BoxGeometry( thick, 0.5, 7.5), new THREE.MeshPhongMaterial());
+    box.position.set( R*Math.cos(tmp + start) + posx, posy, -R*Math.sin(tmp + start));
+	box.rotation.y = tmp + rotate;
+    scene.add(box);
+  }
+}
+function animate() {
+  
+  if(Math.abs(thomas.position.x) > 50){
+    thomas.rotation.y += 0.01;
+    if(thomas.rotation.y >= Math.PI && !add){
+      thomas.position.x += 0.5
+      thomas.rotation.y = Math.PI;
+      add = !add;
+    }
+    else if(thomas.rotation.y >= Math.PI*2 && add){
+      thomas.position.x -= 0.5
+      thomas.rotation.y = 0;
+      add = !add;
+    }
+  }
+  else{
+    if(add)
+      thomas.position.x += 0.5;
+    else
+      thomas.position.x -= 0.5;
+  }
+	keyboard.update();
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+// important to add this 
+// in jsfiddle!
+window.focus();
+
+
+
+
+</script>
+</body>
+
+</html>

@@ -1,0 +1,425 @@
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  // margin: 0;
+  overflow: hidden;
+}
+
+
+</style>
+</head>
+
+<body> 
+<div id="info">Left Toggle for Desk Lamp<br>Right Toggle for Room Light
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+
+<script>
+class Button {
+  constructor(color, name) {
+    this.on = false;
+    this.hsl = color.getHSL();
+    this.obj = this.makeButton(name);
+  }
+
+  get isOn() {
+    return this.on;
+  }
+
+  toggle() {
+    this.on = !this.on;
+    this.update();
+  }
+
+  update() {
+    if (this.on) {
+      this.obj.scale.set (1,0.5,1);
+      this.obj.children[0].material.color.setHSL 
+        (this.hsl.h, 0, 1);
+    } else {
+    	this.obj.scale.set(1,1,1);
+    	this.obj.children[0].material.color.setHSL 
+         (this.hsl.h, this.hsl.s, this.hsl.l);
+    }
+  }
+  
+
+  makeButton(name) {
+    let mesh = new THREE.Mesh(new THREE.BoxGeometry(10, 10 ,10),new THREE.MeshPhongMaterial());
+    let button = new THREE.Object3D();
+    button.add(mesh);
+    mesh.material.color.setHSL (this.hsl.h, this.hsl.s, this.hsl.l)
+    mesh.position.y = 5;
+    button.name = name;  // a string
+    return button;
+  }
+
+}
+var camera, scene, renderer, controls;
+var pickables = [];
+var raycaster = new THREE.Raycaster();
+var light1, light2
+var mouse = new THREE.Vector2();
+var KP = 150;
+var KD = 10;
+var yy, vv;
+var gravity = true;
+var yref = -2;
+init();
+animate();
+function makeDesk(){
+  var desk = new THREE.Object3D();
+  var box1 = new THREE.Mesh(new THREE.BoxGeometry(100, 6, 60), materialLoader());
+  box1.position.y = -1.5;
+  var stick1 = makeDeskLegs();
+  stick1.position.set( 40, -6, 20);
+  var stick2 = makeDeskLegs();
+  stick2.position.set( 40, -6, -20);
+  var stick3 = makeDeskLegs();
+  stick3.position.set( -40, -6, -20);
+  var stick4 = makeDeskLegs();
+  stick4.position.set( -40, -6, 20);
+  desk.add(box1, stick1,  stick2,  stick3,  stick4);
+  return desk;
+}
+function materialLoader(){
+  var loader = new THREE.TextureLoader();
+	loader.setCrossOrigin ('');
+	var wood = new THREE.MeshPhongMaterial({
+	
+    map:loader.load('wood_desk.jpg')
+  });
+  return wood;
+}
+function makeDeskLegs(){
+  var stick = new THREE.Object3D();
+  var stick_top = new THREE.Mesh(new THREE.CylinderGeometry(6, 4, 10, 32),  materialLoader());
+    var stick_mid = new THREE.Mesh(new THREE.SphereGeometry(6, 20, 20),  materialLoader());
+    stick_mid.position.y = -6;
+    var stick_mid2 = new THREE.Mesh(new THREE.CylinderGeometry(4, 6, 10, 32), materialLoader());
+    stick_mid2.position.y = - 12;
+    var stick_bot = new THREE.Mesh(new THREE.CylinderGeometry(6, 3, 60, 32), materialLoader())
+    stick_bot.position.y = -47;
+    stick.add(stick_top, stick_mid, stick_mid2, stick_bot);
+    return stick;
+}
+
+function modelLoad(){
+    var OBJ = new THREE.Object3D();
+	  var onProgress = function(xhr) {
+    if (xhr.lengthComputable) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
+      console.log(Math.round(percentComplete, 2) + '% downloaded');
+    }
+  };
+
+  var onError = function(xhr) {};
+
+  //THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
+
+  var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.setPath('obj/');
+ 	mtlLoader.load('desk_lamp.mtl', function(materials) {
+	
+    materials.preload();
+
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.setPath('obj/');
+    objLoader.load('desk_lamp.obj', function(object) {
+
+			var theObject =  unitize (object, 20);
+			OBJ.add(theObject);				
+			//scene.add (new THREE.BoxHelper (theObject));
+
+
+			//////// MATERIAL ADJUSTMENT for porsche ///////////////
+			// transparent window: double-side fix
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+				});
+
+
+    }, onProgress, onError);
+
+  });
+  var bottom = new THREE.Mesh(new THREE.CylinderGeometry( 4, 4, 1, 10 ), new THREE.MeshLambertMaterial( {color: 0x111111} ));
+  var bottom_stick = new THREE.Mesh(new THREE.BoxGeometry(1, 4, 1), new THREE.MeshLambertMaterial( {color: 0x111111} ));
+  bottom.position.y = 0.5;
+  bottom_stick.position.set(-1, 2.5, -2);
+  OBJ.add(bottom, bottom_stick);
+  OBJ.rotation.y = Math.PI/6
+  OBJ.position.set(-30, 1.5, -20);
+   return OBJ;
+}
+function modelLoadChair(){
+    var OBJ = new THREE.Object3D();
+	  var onProgress = function(xhr) {
+    if (xhr.lengthComputable) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
+      console.log(Math.round(percentComplete, 2) + '% downloaded');
+    }
+  };
+
+  var onError = function(xhr) {};
+
+  //THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
+
+  var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.setPath('obj/');
+ 	mtlLoader.load('tnk500-2.mtl', function(materials) {
+	
+    materials.preload();
+
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.setPath('obj/');
+    objLoader.load('tnk500-2.obj', function(object) {
+
+			var theObject =  unitize (object, 100);
+			OBJ.add(theObject);				
+			//scene.add (new THREE.BoxHelper (theObject));
+
+
+			//////// MATERIAL ADJUSTMENT for porsche ///////////////
+			// transparent window: double-side fix
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+				});
+
+
+    }, onProgress, onError);
+
+  });
+  OBJ.rotation.x = -Math.PI/2;
+  OBJ.rotation.z = Math.PI;
+  OBJ.position.set(0, -32.5, 30);
+   return OBJ;
+}
+function unitize (object, targetSize) {  
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+	
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+	
+	// uniform scaling according to objSize
+	var objSize = findMax (size);
+	var scaleSet = targetSize/objSize;
+				
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+	
+	return theObject;
+	// helper function
+	function findMax(v) {
+		if (v.x > v.y) {
+			return v.x > v.z ? v.x : v.z;
+		} else { // v.y > v.x
+			return v.y > v.z ? v.y : v.z;
+		} 
+	}	
+}
+function onDocumentMouseDown(event) {
+
+  event.preventDefault();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(pickables, true);
+  if (intersects.length > 0) {
+    let picked = intersects[0].object.parent.name;
+    switch (picked) {
+    case 'cyan':
+    	button.toggle();
+		yref = -1 * yref;
+      break;
+    case 'purple':
+    	button2.toggle();
+      break;
+    }
+  }
+
+}
+function init() {
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+  camera.position.z = 500;
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x333333);
+  var solftlight = new THREE.DirectionalLight( 0xffffff, 0.3);
+scene.add( solftlight );
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  document.body.appendChild(renderer.domElement);
+  document.addEventListener('mousedown', onDocumentMouseDown, false);
+  ///////////////////////////////////////////////////////////
+
+  // floor
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 10, 10),
+    new THREE.MeshPhongMaterial());
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+  ///////////////////////////////////////////////////////////
+
+  // spotlight
+  light1 = new THREE.SpotLight(0xffffff, 1);
+  light1.position.set(-28, 99, -17);//100);
+  light1.angle = Math.PI / 4;
+  //light2.target = table;//cube;
+  light1.penumbra = 0.6;
+  light1.distance = 40;
+  light1.intancity = 2;
+  //scene.add(light2);
+  scene.add(light1);
+  // shadow map settings
+  light1.castShadow = true;
+  light1.shadow.mapSize.width = 1024;
+  light1.shadow.mapSize.height = 1024;
+  light1.shadow.camera.near = 1;
+  light1.shadow.camera.far = 30;	
+  light1.shadow.camera.fov = 30;
+
+  light2 = new THREE.SpotLight(0xffffff, 1);
+  light2.position.set(0, 400, 0);//100);
+  light2.angle = Math.PI / 4;
+  //light2.target = table;//cube;
+  light2.penumbra = 0.6;
+  light2.distance = 1000;
+  scene.add(light2);
+
+  // shadow map settings
+  light2.castShadow = true;
+  light2.shadow.mapSize.width = 1024;
+  light2.shadow.mapSize.height = 1024;
+  light2.shadow.camera.near = 50;
+  light2.shadow.camera.far = 400;	
+  light2.shadow.camera.fov = 45;
+  
+  //scene.add(new THREE.SpotLightHelper(light2, 5));
+
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+
+  
+  //scene.add ( new THREE.CameraHelper (light1.shadow.camera) );
+  //scene.add ( new THREE.CameraHelper (light2.shadow.camera) );
+  
+  var desk_lamp = modelLoad();
+  var Desk = makeDesk();
+  var chair = modelLoadChair();
+  scene.add(desk_lamp, Desk);
+  var all = new THREE.Object3D();
+  all.add(desk_lamp, Desk, chair);
+    floor.receiveShadow = true;
+	all.position.y = 82.5;
+	chair.traverse (
+     function (mesh) {
+        if (mesh instanceof THREE.Mesh) {
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        }
+      }
+    );
+	all.traverse (
+     function (mesh) {
+        if (mesh instanceof THREE.Mesh) {
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        }
+      }
+    );
+	scene.add(all);
+	//////////////////////////////
+  var ctrller = new THREE.Object3D()
+  var box_ctrl = new THREE.Mesh(new THREE.BoxGeometry(40, 5, 20), new THREE.MeshPhongMaterial( {color: 0x123456}));
+  box_ctrl.position.x = 8.5;
+  button = new Button(new THREE.Color (0x12ffff), 'cyan');
+  //scene.add(button.obj);
+  pickables.push(button.obj);
+  
+  button2 = new Button(new THREE.Color (0xff12ff), 'purple');
+  //scene.add(button2.obj);
+  pickables.push(button2.obj);
+  button2.obj.position.x = 20
+  ctrller.add(box_ctrl, button.obj, button2.obj);
+  ctrller.position.y = 82.5;
+  scene.add(ctrller);
+  /////////////////
+  yy = 0;
+  vv = 0;
+}
+function feedbackForce () {
+	let f = -KP*(yy - yref) - KD*vv;
+  return f;
+}
+function animate() {
+  var f = feedbackForce();
+  let dt = 0.01;
+  vv += f*dt;
+  yy += vv*dt
+  controls.update();
+  if(yy > 1.8 && yy < 2.3){
+    light1.visible = true;
+  }
+  else{
+    light1.visible = false;
+  }
+  if(button2.isOn){
+    light2.visible = true;
+  }
+  else{
+    light2.visible = false;
+  }
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+
+</script>
+</body>
+
+</html>

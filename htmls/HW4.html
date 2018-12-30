@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+
+</style>
+</head>
+
+<body> 
+<div id="info">
+<a href="https://poly.google.com/view/bZzOLcCHOu7" target="_blank">My OBJ's Link</a>
+<br>
+Use Up Down Left Right to Control.
+<p id="download">0 %</p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/DDSLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>
+var camera, scene, renderer, mesh, controls, viewPoint, cameraMap, cameraHUD, sceneHUD;
+var keyboard = new KeyboardState();
+var clock;
+var obstacle = [];
+var car, car2 = new THREE.Object3D();
+var pos = new THREE.Vector3();
+var speed, angle, vel;
+class Obstacle{
+	constructor(){
+		do{
+			this.x=Math.random() * 200 - 100;
+			this.z=Math.random() * 200 - 100;
+		}while((this.x > -30 && this.x < 30)&&(this.z > -30&&this.z < 30));
+		this.r = Math.random() * 20 + 5;
+		this.mesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( this.r, this.r, 10, 32 ), new THREE.MeshLambertMaterial ({color: 0xabcdef}));
+		this.mesh.position.set(this.x, 5, this.z );
+	}
+	hit(){
+		var dis_x = Math.cos(angle)*(this.x - pos.x) - Math.sin(angle)*(this.z - pos.z) + pos.x;
+		var dis_z = Math.cos(angle)*(this.z - pos.z) + Math.sin(angle)*(this.x - pos.x) + pos.z;
+		var pt_1 = new THREE.Vector3(pos.x + 10, 0, pos.z + 5);
+		var pt_2 = new THREE.Vector3(pos.x - 10, 0, pos.z - 5);
+		var pt_3 = new THREE.Vector3(pos.x + 10, 0, pos.z - 5);
+		var pt_4 = new THREE.Vector3(pos.x - 10, 0, pos.z + 5);
+		
+		if(pt_2.z > dis_z){	
+			if(pt_1.x < dis_x){	
+				if(Math.sqrt((pt_3.x - dis_x)*(pt_3.x - dis_x)+(pt_3.z - dis_z)*(pt_3.z-dis_z))<=this.r)
+					return true;
+			}
+			else if(pt_2.x > dis_x){	
+				if(Math.sqrt((pt_2.x-dis_x)*(pt_2.x-dis_x)+(pt_2.z-dis_z)*(pt_2.z-dis_z))<=this.r)
+					return true;
+			}
+			else if(pt_1.x > dis_x && pt_2.x < dis_x){	
+				if(pt_2.z < dis_z + this.r)
+					return true;
+			}
+		}
+		else if(pt_1.z < dis_z){	
+			if(pt_1.x < dis_x){	
+				if(Math.sqrt((pt_1.x-dis_x)*(pt_1.x-dis_x)+(pt_1.z-dis_z)*(pt_1.z-dis_z))<=this.r)
+					return true;
+			}
+			else if(pt_2.x > dis_x){	
+				if(Math.sqrt((pt_4.x-dis_x)*(pt_4.x-dis_x)+(pt_4.z-dis_z)*(pt_4.z-dis_z))<=this.r)
+					return true;
+			}
+			else if(pt_1.x > dis_x && pt_2.x < dis_x){
+				if(pt_1.z > dis_z - this.r)
+					return true;
+			}
+		}
+		else {	
+			if(pt_1.x < dis_x){	
+				if(pt_1.x > dis_x - this.r)
+					return true;
+			}
+			else if(pt_2.x > dis_x){	
+				if(pt_2.x < dis_x + this.r)
+					return true;
+			}
+			else if(pt_1.x > dis_x && pt_2.x < dis_x){	
+				return true;
+			}
+		}
+		////////////hit wall
+		return false;
+	}
+}
+(function() {
+  Math.clamp = function(val,min,max){
+    return Math.min(Math.max(val,min),max);
+    
+  }})();
+  
+init();
+animate();
+//////////////////////////////////////////////////////////////////////////////
+function initHUD() {
+  // sceneHUD: a simple line boundary
+  sceneHUD = new THREE.Scene();
+  cameraHUD = new THREE.OrthographicCamera(-10.5, 10.5, 10.5, -10.5, -10, 10);
+  cameraHUD.position.z = 5;
+
+  var lineGeometry = new THREE.Geometry();
+  lineGeometry.vertices.push(new THREE.Vector3(-10, -10, 0),
+    new THREE.Vector3(10, -10, 0),
+    new THREE.Vector3(10, 10, 0),
+    new THREE.Vector3(-10, 10, 0),
+    new THREE.Vector3(-10, -10, 0));
+  var line = new THREE.Line(lineGeometry,
+    new THREE.LineBasicMaterial({
+      color: 0xffffff
+    }));
+  sceneHUD.add(line);
+  
+}
+///////////////////////////////////////////////////////////////////////////////
+function unitize (object, targetSize) {  
+	
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+	
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+	
+	// uniform scaling according to objSize
+	var objSize = findMax (size);
+	var scaleSet = targetSize/objSize;
+				
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+	
+	return theObject;
+	
+	
+	// helper function
+	function findMax(v) {
+		if (v.x > v.y) {
+			return v.x > v.z ? v.x : v.z;
+		} else { // v.y > v.x
+			return v.y > v.z ? v.y : v.z;
+		} 
+	}
+			
+}
+
+
+function init() {
+
+  clock = new THREE.Clock();
+  scene = new THREE.Scene();
+  
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 20000);
+
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  scene.add(gridXZ);
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+
+  //controls = new THREE.OrbitControls(camera, renderer.domElement);
+  //controls.enableKeys = false;
+  document.body.appendChild(renderer.domElement);
+  
+  window.addEventListener('resize', onWindowResize, false);
+  
+  var ambient = new THREE.AmbientLight(0x444444);
+  scene.add(ambient);
+
+  var directionalLight = new THREE.DirectionalLight(0xffffff);
+  directionalLight.position.set(0, 1, 1).normalize();
+  scene.add(directionalLight);
+  
+  // model
+    var onProgress = function(xhr) {
+    if (xhr.lengthComputable) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
+	  //$('#download').text(Math.round(percentComplete, 2) + "%");
+      console.log(Math.round(percentComplete, 2) + '% downloaded');
+    }
+  };
+ 
+  var onError = function(xhr) {};
+
+  //THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
+  var mtlLoader = new THREE.MTLLoader();
+  mtlLoader.setPath('obj/');
+ 	mtlLoader.load('strts.mtl', function(materials) {
+	
+    materials.preload();
+
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.setPath('obj/');
+    objLoader.load('strts.obj', function(object) {
+	
+            var theObject =  unitize (object, 20);
+			theObject.rotation.y = Math.PI/2;
+			var theBox;
+			//theBox = new THREE.BoxHelper (theObject);
+			car2.add(theObject);
+            //scene.add(theObject);
+
+			//////// MATERIAL ADJUSTMENT for porsche ///////////////
+			// transparent window: double-side fix
+			object.traverse (
+				function(mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.material.side = THREE.DoubleSide;
+					}
+				});
+
+
+    }, onProgress, onError);
+
+  });
+  scene.add(car2);
+  console.log(car2);
+  
+  //
+  ////////////////////////////////////////////////////////////////////////
+  speed = 5.0;
+  angle = 0.0;
+  ////////////////////////////////////////////////////////////////////////
+  initHUD();
+  renderer.autoClear = false;
+  
+  cameraMap = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 20000);
+  //take a while to find a good view
+  cameraMap.position.set (0, 250, 0);
+  cameraMap.lookAt (new THREE.Vector3());
+  car2.add(camera);
+  
+  camera.position.y = 10;
+  camera.position.x = -10;
+  
+  var boxGe = new THREE.BoxGeometry(2, 2, 2);
+  var boxMl = new THREE.MeshLambertMaterial();
+
+  viewPoint = new THREE.Mesh(boxGe, boxMl);
+  viewPoint.visible = false;
+  viewPoint.position.x = 50;
+  car2.add(viewPoint);
+  ///////////////////////////////////////////////////////////////////////
+  for(var i = 0; i < 5 ; i++){
+    obstacle[i] = new Obstacle(); 
+	scene.add(obstacle[i].mesh);
+  }
+}
+function onWindowResize(){
+
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+}
+
+function update(dt) {
+
+  keyboard.update();
+    var stop = new THREE.Vector3();
+	stop.copy(pos);
+	if ( keyboard.pressed("left") ) 
+		angle += 0.01;               
+	if ( keyboard.pressed("right") )
+		angle -= 0.01;               
+	if ( keyboard.pressed("up") )  
+		speed += 0.5;        
+	if ( keyboard.pressed("down") )  
+		speed -= 0.5;    
+
+	speed = Math.clamp (speed, -15.0, 50.0);		
+	vel = new THREE.Vector3(speed,0,0);
+
+	vel.applyAxisAngle (new THREE.Vector3(0,1,0), angle);
+	
+	pos.add (vel.clone().multiplyScalar(dt)); 
+
+	/////////////check hit
+    for(var i = 0; i < 5; i++)
+	  if(obstacle[i].hit()) break;
+	
+	if(i<5 || pos.x >= 100 || pos.x <= -100 || pos.z >= 100 || pos.z <= -100){
+		pos.copy(stop);
+		speed = 0;
+	}	
+}
+
+function animate() {
+
+  //controls.update();
+
+  var dt = clock.getDelta();
+  update(dt);
+  
+  // car update
+  car2.position.copy(pos);
+  car2.rotation.y = angle;
+  
+ 
+  camera.lookAt(viewPoint.position);
+  requestAnimationFrame(animate);
+  render();
+}
+//////////////////////////////////////////////////
+function render() {
+
+  var WW = window.innerWidth;
+  var HH = window.innerHeight;
+
+  renderer.setScissorTest(true);
+
+  renderer.setViewport(0, 0, WW/2, HH);
+  camera.aspect = WW/2 / HH;
+  camera.updateProjectionMatrix();
+  
+  renderer.setScissor(0, 0, WW/2, HH);
+  renderer.clear();
+  renderer.render(scene, camera);
+  //renderer.render(sceneHUD, cameraHUD);
+
+  renderer.setViewport(WW / 2, 0, WW / 2, HH);
+  cameraMap.aspect = WW/2 / HH;
+  cameraMap.updateProjectionMatrix();
+  renderer.setScissor(WW / 2, 0, WW / 2, HH);
+  
+  // no need to set aspect (since it is still ONE)
+  renderer.clear();  // important!
+  renderer.render(sceneHUD, cameraHUD);
+  renderer.render(scene, cameraMap);
+
+  renderer.setScissorTest(false);
+}
+
+
+
+
+</script>
+</body>
+
+</html>

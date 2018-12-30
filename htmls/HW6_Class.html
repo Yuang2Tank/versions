@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+</style>
+</head>
+
+<body> 
+<div id="info">
+  HW6 Class Teapots <br>
+  <a id="count">Counter 0</a>
+  
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script id="myGoochVertexShader" type="x-shader/x-vertex">
+    uniform vec3 lightpos;  // world coordinate
+    varying vec3 eyelightdir;
+    varying vec3 eyenormal;
+    
+    varying vec4 eyepos;
+    
+    void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        eyepos = modelViewMatrix * vec4 (position, 1.0);
+        vec4 eyelightpos= viewMatrix * vec4 (lightpos, 1.0);
+        eyelightdir = normalize (eyelightpos.xyz - eyepos.xyz);
+        eyenormal = normalMatrix * normal;
+    }
+</script>
+<script id="myGoochFragmentShader" type="x-shader/x-fragment">
+  varying vec3 eyelightdir;
+  varying vec3 eyenormal;
+  varying vec4 eyepos;
+  uniform float opacity;
+  vec3	red = vec3(1.0, 0.0, 0.0);
+  vec3	blue = vec3(0.0, 0.0, 1.0);
+  void main() {
+      vec3 normalVector = normalize(eyenormal);
+      vec3 lightVector = normalize(eyelightdir);
+      vec3 kcd = blue + dot(normalize(eyenormal), normalize(eyelightdir)) * 0.1;
+      vec3 kwd = red + dot(normalize(eyenormal), normalize(eyelightdir)) * 0.6;
+      vec3 color = ((1.0 + dot(normalize(eyenormal), normalize(eyelightdir)))/2.0) * kwd + (1.0 - (1.0 + dot(normalize(eyenormal), normalize(eyelightdir)))/2.0) * kcd;
+      gl_FragColor = vec4 (color, opacity);
+  }
+</script>
+<script>
+class Teapot {
+	constructor(){
+		this.turn = true;
+		this.angle = 0;
+		this.life = 100;
+        var mat = new THREE.ShaderMaterial({
+			uniforms: {
+				lightpos: {type:'v3', value: new THREE.Vector3() },
+				opacity: {type:'f', value: 1.0}
+			},
+			vertexShader: document.getElementById('myGoochVertexShader').textContent,
+			fragmentShader: document.getElementById('myGoochFragmentShader').textContent
+		});
+		mat.transparent = true;
+		this.mtrl = mat;
+		
+		var teapot = new THREE.Object3D();
+		var jsonLoader = new THREE.JSONLoader();
+
+		var url = 'https://raw.githubusercontent.com/jyunming-chen/tutsplus/master/models/teapot.json';
+		jsonLoader.load(url, function(geometry, materials) {
+			var jsonModel = new THREE.Mesh(geometry, mat);
+			var theTeapot = unitize (jsonModel, 50);
+			teapot.add(theTeapot);
+		});
+		this.mesh = teapot;
+	}
+	get turned(){
+		return this.turn;
+	}
+	toggle(){
+		this.turn = !this.turn;
+	}
+	update(){
+		this.life -= 0.2;
+		this.mtrl.uniforms.opacity.value = this.life/100;
+		this.angle += (this.life/1000);
+		this.mesh.rotation.y = this.angle;
+	}
+}
+
+
+var scene, renderer, camera, test;
+var controls, raycaster;
+var movingTeapot;
+var angle = 0, counter = 0;
+var teapotMaterial;
+var pointLight, lightSphere;
+var mouse = new THREE.Vector2();
+var pickables = [];
+var teapots = [];
+init();
+animate();
+
+function init() {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  renderer.setSize(width, height);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
+  camera.position.set(0, 100, 200);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  scene.add(gridXZ);
+  ///////////light//////////////////////
+  pointLight = new THREE.PointLight(0xffffff);
+  scene.add(pointLight);
+  lightSphere = new THREE.Mesh(new THREE.SphereGeometry(5),
+  new THREE.MeshBasicMaterial({
+      color: 0xffff00,
+      wireframe: true
+  }));
+  scene.add(lightSphere);
+  var ambientLight = new THREE.AmbientLight(0x111111);
+  scene.add(ambientLight);
+
+  /////////////////////////////////////////////////////////////////
+
+  var plane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    visible: true
+  }));
+  scene.add(plane);
+  plane.rotation.x = -Math.PI / 2;
+  pickables.push(plane);
+  
+  raycaster = new THREE.Raycaster();
+  document.addEventListener('mousedown', onDocumentMouseDown, false);
+  
+}
+function onDocumentMouseDown(event) {
+
+  // PICKING DETAILS: 
+  // convert mouse.xy = [-1,1]^2 (NDC)
+  // unproject (mouse.xy, 1) to a point on the far plane (in world coordinate)
+  // set raycaster (origin, direction)
+  // find intersection objects, (closest first) 
+  // each record as
+  // [ { distance, point, face, faceIndex, object }, ... ]
+
+  event.preventDefault();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // find intersections
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(pickables);
+  if (intersects.length > 0) {
+    let teapot = new Teapot();
+	teapots.push(teapot);
+	counter++;
+	teapot.mesh.position.copy(intersects[0].point);
+	scene.add(teapot.mesh);
+  }
+
+}
+////////////////////////////////////////
+// create an Object3D of the given object
+// so that it is centered at +Y axis
+// 
+function unitize (object, targetSize) {  
+	
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+	
+	console.log ('center: ' + center.x + ', '+center.y + ', '+center.z );
+	console.log ('size: ' + size.x + ', ' +  size.y + ', '+size.z );
+	
+	// uniform scaling according to objSize
+	var objSize = findMax (size);
+	var scaleSet = targetSize/objSize;
+				
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+	
+	return theObject;
+	
+	
+	// helper function
+	function findMax(v) {
+		if (v.x > v.y) {
+			return v.x > v.z ? v.x : v.z;
+		} else { // v.y > v.x
+			return v.y > v.z ? v.y : v.z;
+		} 
+	}
+			
+}
+
+function animate() {
+  angle += 0.01;
+
+  // update the uniform variable
+  pointLight.position.set(50 * Math.cos(angle), 80, 50 * Math.sin(angle));
+  lightSphere.position.copy(pointLight.position);
+  //goochMaterial.uniforms.lightpos.value.copy(pointLight.position);
+  //test.mtrl.uniforms.lightpos.value.copy(pointLight.position);
+  if(teapots.length > 0){
+    for(let i = 0; i < teapots.length ; i++){
+	  if(teapots[i].life < 0){
+	    scene.remove(teapots[i].mesh);
+		for (let j = i + 1; j < counter ; j++) {
+            teapots[j-1] = teapots[j];
+          }
+		  teapots.pop();
+		  counter--;
+	  }
+	  else{
+	    teapots[i].update();
+		teapots[i].mtrl.uniforms.lightpos.value.copy(pointLight.position);
+	  }
+	}
+	$("#count").text("Counter: " + counter);
+  }
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+
+}
+
+</script>
+</body>
+
+</html>

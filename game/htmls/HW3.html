@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+	body {
+	  background-color: #fff;
+	  color: #111;
+	  margin: 0px;
+	  overflow: hidden;
+	  font-family: Monospace;
+	  font-size: 20px;
+	}
+	
+	#info {
+	  position: absolute;
+	  top: 0px;
+	  width: 100%;
+	  padding: 5px;
+	  text-align: center;
+	  color: #ffff00
+	}
+	
+	a {
+	  color: #00ffff
+	}
+	
+	strong {
+	  color: red
+	}
+	
+	#container {
+	  z-index: 0;
+	  left: 0px;
+	  top: 0px;
+	  overflow: hidden;
+	  position: absolute;
+	  width: 100%;
+	  height: 100%;
+	}
+
+
+</style>
+</head>
+
+<body> 
+<div id="info">
+  HW3 <br>
+  DANCING TIME!
+  <br>
+</div>
+<audio id="soundtrack" autoplay loop style="display:none">
+<source src="Dance.mp3" type='audio/mp3'>
+</audio>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5.1/dat.gui.min.js"></script>
+<script src="https://threejs.org/examples/js/Gyroscope.js"></script>
+<script src="charactor.js"></script>
+
+<script>
+
+var scene, renderer, camera;
+var body, lowerArm, upperArm, player, isPaused = false;
+/*
+$('#play').click ( function() {
+	isPaused = !isPaused;
+	if (isPaused) { 
+		$('#play').text ('Play')
+		soundTrack.pause()
+	} else {
+		$('#play').text ('Pause')
+		soundTrack.play()
+	}
+});*/
+var pos0 = {
+        "R_sZ": 0.454,
+        "R_sX": -0.292,
+        "R_sY": 0.304,
+        "R_eR": 1.975,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0.455,
+        "RL_sX": -0.242,
+        "RL_sY": 0.01,
+        "RL_eR": -0.926,
+        "LL_sZ": 0.455,
+        "LL_sX": 0.242,
+        "LL_sY": 0.01,
+        "LL_eR": -0.926,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": -0.5
+    },
+    pos1 = {
+        "R_sZ": 1.4974775524184665,
+        "R_sX": 0,
+        "R_sY": 0.30446738037568144,
+        "R_eR": 0,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0,
+        "RL_sX": -0.242,
+        "RL_sY": 0.01,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0.242,
+        "LL_sY": 0.01,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": 0
+    },
+    pos2 = {
+        "R_sZ": 0.454,
+        "R_sX": -0.291,
+        "R_sY": 0.30446738037568144,
+        "R_eR": 1.975,
+        "L_sZ": 1.497,
+        "L_sX": 0,
+        "L_sY": -0.304,
+        "L_eR": 0,
+        "RL_sZ": 0,
+        "RL_sX": -0.242,
+        "RL_sY": 0.01,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0.242,
+        "LL_sY": 0.01,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": 0
+    },
+    pos3 = {
+        "R_sZ": 0.454,
+        "R_sX": -0.292,
+        "R_sY": 0.304,
+        "R_eR": 1.975,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0,
+        "RL_sX": 0,
+        "RL_sY": 0,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0,
+        "LL_sY": 0,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": -1,
+        "posY": 0
+    },
+    pos4 = {
+        "R_sZ": 0.454,
+        "R_sX": -0.292,
+        "R_sY": 0.304,
+        "R_eR": 1.975,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0,
+        "RL_sX": 0,
+        "RL_sY": 0,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0,
+        "LL_sY": 0,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": 1,
+        "posY": 0
+    };
+var keys = [
+  [0, pos0],
+  [0.125, pos1],
+  [0.25, pos0],
+  [0.375, pos2],
+  [0.5, pos0],
+  [0.625, pos3],
+  [0.75, pos0],
+  [0.875, pos4],
+  [1, pos0]
+];
+var T = 3.3;
+var clock = new THREE.Clock();
+var ts = clock.getElapsedTime()
+var intKey =[];
+var gcontrols = {
+	R_sZ: 0.01,  // s for shoulder
+	R_sX: 0.02,
+	R_sY: 0.01,
+	R_eR: 0.03,  // e for elbow
+	L_sZ: 0.01,  // s for shoulder
+	L_sX: 0.02,
+	L_sY: 0.01,
+	L_eR: 0.03,  // e for elbow
+	RL_sZ: 0.01,  //leg
+	RL_sX: 0.02,
+	RL_sY: 0.01,
+	RL_eR: 0.03,  
+	LL_sZ: 0.01,  
+	LL_sX: 0.02,
+	LL_sY: 0.01,
+	LL_eR: 0.03,
+	rY: -1.57,
+	posX: 0.01,
+	posY: 0.01
+};
+
+///////////////////////
+init();
+animate();
+
+function buildBody () {
+
+	var body = new THREE.Object3D();
+
+	let boxGeometry;
+	boxGeometry = new THREE.BoxGeometry(50, 100, 30);
+  let torso = new THREE.Mesh(boxGeometry, new THREE.MeshNormalMaterial());
+  torso.position.set(0, 50, 0);
+  body.add(torso);
+
+  let arm;
+  upperArm = new THREE.Object3D();
+  boxGeometry = new THREE.BoxGeometry(10, 40, 10);
+  arm = new THREE.Mesh(boxGeometry, new THREE.MeshNormalMaterial());
+  upperArm.add(arm);
+  arm.position.set(-5, -20, 0);
+  body.add(upperArm);
+  upperArm.position.set(-25, 100, 0);
+
+  lowerArm = new THREE.Object3D();
+  boxGeometry = new THREE.BoxGeometry(10, 60, 10);
+  arm = new THREE.Mesh(boxGeometry, new THREE.MeshNormalMaterial());
+  lowerArm.add(arm);
+  arm.position.set(-5, -30, 0);
+  lowerArm.position.set(0, -40, 0);
+  upperArm.add(lowerArm);
+
+	return body;
+}
+
+function init() {
+
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  renderer.setSize(width, height);
+  renderer.setClearColor(0x888888);
+  
+ 
+  
+  document.body.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  
+  var light = new THREE.PointLight();
+  light.position.set( 0, 100, 50);
+  scene.add(light);
+  var amblight = new THREE.AmbientLight(0x666666); 
+  scene.add(amblight);
+  
+  camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 10000);
+  camera.position.y = 160;
+  camera.position.z = 400;
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  scene.add(camera);
+
+  let controls = new THREE.OrbitControls(camera, renderer.domElement);
+ 	let gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  scene.add(gridXZ);
+  
+  window.addEventListener('resize', onWindowResize, false);
+	/////////////////////////////////////////////////////////////////////////////
+  body = buildBody ();
+  scene.add (body)
+  body.visible = false;
+  player = new makePlayer(1);
+  scene.add(player);
+  var gui = new dat.GUI({load: loadJSON()});
+  gui.remember (gcontrols);
+  /*
+  R_sZ: 0.01,  // s for shoulder
+	L_sZ: 0.01,  // s for shoulder
+	L_sX: 0.02,
+	L_eR: 0.03,  // e for elbow
+	posY: 0.01
+	*/
+  gui.add (gcontrols, 'R_sZ', -3.2, 3.2);
+  gui.add (gcontrols, 'R_sX', -3.2, 3.2);
+  gui.add (gcontrols, 'R_sY', -3.2, 3.2);
+  gui.add (gcontrols, 'R_eR', 0, 3.2);
+  gui.add (gcontrols, 'L_sZ', -3.2, 3.2);
+  gui.add (gcontrols, 'L_sX', -3.2, 3.2);
+  gui.add (gcontrols, 'L_sY', -3.2, 3.2);
+  gui.add (gcontrols, 'L_eR', 0, 3.2);
+  gui.add (gcontrols, 'RL_sZ', -3.2, 3.2);
+  gui.add (gcontrols, 'RL_sX', -3.2, 3.2);
+  gui.add (gcontrols, 'RL_sY', -3.2, 3.2);
+  gui.add (gcontrols, 'RL_eR', -3.2, 0);
+  gui.add (gcontrols, 'LL_sZ', -3.2, 3.2);
+  gui.add (gcontrols, 'LL_sX', -3.2, 3.2);
+  gui.add (gcontrols, 'LL_sY', -3.2, 3.2);
+  gui.add (gcontrols, 'LL_eR', -3.2, 0);
+  gui.add (gcontrols, 'rY', -3.2, 0);
+  gui.add (gcontrols, 'posX', -20, 20);
+  gui.add (gcontrols, 'posY', -5, 20);
+  ///////////////////////
+  
+  var gyroscope = new THREE.Gyroscope();
+  gyroscope.scale.set(0.2, 0.2, 0.2);
+  scene.add(gyroscope);
+  gyroscope.add(camera);
+  player.children[1].add(gyroscope);
+  
+  ///////////////////////
+}
+function loadJSON(){
+  return {
+  "preset": "pos0",
+  "remembered": {
+    "Default": {
+      "0": {
+        "R_sZ": 0.01,
+        "R_sX": 0.02,
+        "R_sY": 0.01,
+        "R_eR": 0.03,
+        "L_sZ": 0.01,
+        "L_sX": 0.02,
+        "L_sY": 0.01,
+        "L_eR": 0.03,
+        "RL_sZ": 0.01,
+        "RL_sX": 0.02,
+        "RL_sY": 0.01,
+        "RL_eR": 0.03,
+        "LL_sZ": 0.01,
+        "LL_sX": 0.02,
+        "LL_sY": 0.01,
+        "LL_eR": 0.03,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": 0.01
+      }
+    },
+    "pos0": {
+      "0": {
+        "R_sZ": 0.454,
+        "R_sX": -0.292,
+        "R_sY": 0.304,
+        "R_eR": 1.975,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0.455,
+        "RL_sX": -0.242,
+        "RL_sY": 0.01,
+        "RL_eR": -0.926,
+        "LL_sZ": 0.455,
+        "LL_sX": 0.242,
+        "LL_sY": 0.01,
+        "LL_eR": -0.926,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": -0.5
+      }
+    },
+    "pos1": {
+      "0": {
+        "R_sZ": 1.4974775524184665,
+        "R_sX": 0,
+        "R_sY": 0.30446738037568144,
+        "R_eR": 0,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0,
+        "RL_sX": -0.242,
+        "RL_sY": 0.01,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0.242,
+        "LL_sY": 0.01,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": 0
+      }
+    },
+    "pos2": {
+      "0": {
+        "R_sZ": 0.454,
+        "R_sX": -0.291,
+        "R_sY": 0.30446738037568144,
+        "R_eR": 1.975,
+        "L_sZ": 1.497,
+        "L_sX": 0,
+        "L_sY": -0.304,
+        "L_eR": 0,
+        "RL_sZ": 0,
+        "RL_sX": -0.242,
+        "RL_sY": 0.01,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0.242,
+        "LL_sY": 0.01,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": 0.01,
+        "posY": 0
+      }
+    },
+    "pos3": {
+      "0": {
+        "R_sZ": 0.454,
+        "R_sX": -0.292,
+        "R_sY": 0.304,
+        "R_eR": 1.975,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0,
+        "RL_sX": 0,
+        "RL_sY": 0,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0,
+        "LL_sY": 0,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": -1,
+        "posY": 0
+      }
+    },
+    "pos4": {
+      "0": {
+        "R_sZ": 0.454,
+        "R_sX": -0.292,
+        "R_sY": 0.304,
+        "R_eR": 1.975,
+        "L_sZ": 0.454,
+        "L_sX": 0.291,
+        "L_sY": -0.304,
+        "L_eR": 1.975,
+        "RL_sZ": 0,
+        "RL_sX": 0,
+        "RL_sY": 0,
+        "RL_eR": 0,
+        "LL_sZ": 0,
+        "LL_sX": 0,
+        "LL_sY": 0,
+        "LL_eR": 0,
+        "rY": -1.57,
+        "posX": 1,
+        "posY": 0
+      }
+    }
+  },
+  "closed": false,
+  "folders": {}
+  }
+}
+function keyframe(t) {
+  var s = ((t - ts) % T) / T;
+
+  for (var i = 1; i < keys.length; i++) {
+    if (keys[i][0] > s) break;
+  }
+/* "R_sZ": 0.01,
+        "R_sX": 0.02,
+        "R_sY": 0.01,
+        "R_eR": 0.03,
+        "L_sZ": 0.1553411088703336,
+        "L_sX": 0.006214837364984849,
+        "L_sY": 0.01,
+        "L_eR": 0.03,
+        "RL_sZ": 0.838,
+        "RL_sX": 0.02,
+        "RL_sY": 0.01,
+        "RL_eR": -1.597,
+        "LL_sZ": 0.838,
+        "LL_sX": 0.01,
+        "LL_sY": 0.01,
+        "LL_eR": 0,
+        "rY": -1.6714557170701816,
+        "posX": 0.01,
+        "posY": -1.21359076255952*/
+  // take i-1
+  var ii = i - 1;
+  var a = (s - keys[ii][0]) / (keys[ii + 1][0] - keys[ii][0]);
+  //console.log (a)
+  intKey = [keys[ii][1].R_sZ * (1 - a) + keys[ii + 1][1].R_sZ * a,
+            keys[ii][1].R_sX * (1 - a) + keys[ii + 1][1].R_sX * a,
+            keys[ii][1].R_sY * (1 - a) + keys[ii + 1][1].R_sY * a,
+            keys[ii][1].R_eR * (1 - a) + keys[ii + 1][1].R_eR * a,
+            keys[ii][1].L_sZ * (1 - a) + keys[ii + 1][1].L_sZ * a,
+            keys[ii][1].L_sX * (1 - a) + keys[ii + 1][1].L_sX * a,
+            keys[ii][1].L_sY * (1 - a) + keys[ii + 1][1].L_sY * a,
+            keys[ii][1].L_eR * (1 - a) + keys[ii + 1][1].L_eR * a,
+            keys[ii][1].RL_sZ * (1 - a) + keys[ii + 1][1].RL_sZ * a,
+            keys[ii][1].RL_sX * (1 - a) + keys[ii + 1][1].RL_sX * a,
+            keys[ii][1].RL_sY * (1 - a) + keys[ii + 1][1].RL_sY * a,
+            keys[ii][1].RL_eR * (1 - a) + keys[ii + 1][1].RL_eR * a,
+            keys[ii][1].LL_sZ * (1 - a) + keys[ii + 1][1].LL_sZ * a,
+            keys[ii][1].LL_sX * (1 - a) + keys[ii + 1][1].LL_sX * a,
+            keys[ii][1].LL_sY * (1 - a) + keys[ii + 1][1].LL_sY * a,
+            keys[ii][1].LL_eR * (1 - a) + keys[ii + 1][1].LL_eR * a,
+            keys[ii][1].rY * (1 - a) + keys[ii + 1][1].rY * a,
+            keys[ii][1].posX * (1 - a) + keys[ii + 1][1].posX * a,
+            keys[ii][1].posY * (1 - a) + keys[ii + 1][1].posY * a,
+  ];
+
+}
+function animate() {
+  requestAnimationFrame(animate);
+  render();
+}
+
+function onWindowResize() {
+  var width = window.innerWidth,
+    height = window.innerHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
+
+
+function render() {
+
+  keyframe (clock.getElapsedTime());
+  player.children[2].rotation.z = intKey[0];//theta1; //-Math.PI/6;//theta1;
+  player.children[2].rotation.x = intKey[1];
+  player.children[2].rotation.y = intKey[2];//theta2; //-Math.PI/3;//theta2;
+  player.children[2].rotation.order = 'ZXY';
+  player.children[2].children[1].rotation.z = intKey[3];//theta3; //-Math.PI/4;//theta3;
+  
+  player.children[3].rotation.z = intKey[4];//theta1; //-Math.PI/6;//theta1;
+  player.children[3].rotation.x = intKey[5];
+  player.children[3].rotation.y = intKey[6];//theta2; //-Math.PI/3;//theta2;
+  player.children[3].rotation.order = 'ZXY';
+  player.children[3].children[1].rotation.z = intKey[7]
+  
+  player.children[1].children[1].rotation.z = intKey[8];
+  player.children[1].children[1].rotation.x = intKey[9];
+  player.children[1].children[1].rotation.y = intKey[10];
+  player.children[1].children[1].rotation.order = 'ZXY';
+  player.children[1].children[1].children[1].rotation.z = intKey[11];
+  
+  //theta3; //-Math.PI/4;//theta3;
+  
+  player.children[1].children[2].rotation.z = intKey[12];
+  player.children[1].children[2].rotation.x = intKey[13];
+  player.children[1].children[2].rotation.y = intKey[14];
+  player.children[1].children[2].rotation.order = 'ZXY';
+  player.children[1].children[2].children[1].rotation.z = intKey[15];
+  
+  player.rotation.y = intKey[16];
+  player.position.x = intKey[17];
+  player.position.y = intKey[18];
+  /*
+  player.children[2].rotation.z = gcontrols.R_sZ;//theta1; //-Math.PI/6;//theta1;
+  player.children[2].rotation.y = gcontrols.R_sY;
+  player.children[2].rotation.x = gcontrols.R_sX;//theta2; //-Math.PI/3;//theta2;
+  player.children[2].rotation.order = 'ZXY';
+  player.children[2].children[1].rotation.z = gcontrols.R_eR;//theta3; //-Math.PI/4;//theta3;
+  
+  player.children[1].children[1].rotation.z = gcontrols.RL_sZ;
+  player.children[1].children[1].rotation.y = gcontrols.RL_sY;
+  player.children[1].children[1].rotation.x = gcontrols.RL_sX;
+  player.children[1].children[1].rotation.order = 'ZXY';
+  player.children[1].children[1].children[1].rotation.z = gcontrols.RL_eR;
+  
+  player.children[3].rotation.z = gcontrols.L_sZ//theta1; //-Math.PI/6;//theta1;
+  player.children[3].rotation.y = gcontrols.L_sY
+  player.children[3].rotation.x = gcontrols.L_sX//theta2; //-Math.PI/3;//theta2;
+  player.children[3].rotation.order = 'ZXY';
+  player.children[3].children[1].rotation.z = gcontrols.L_eR//theta3; //-Math.PI/4;//theta3;
+  
+  player.children[1].children[2].rotation.z = gcontrols.LL_sZ;
+  player.children[1].children[2].rotation.y = gcontrols.LL_sY;
+  player.children[1].children[2].rotation.x = gcontrols.LL_sX;
+  player.children[1].children[2].rotation.order = 'ZXY';
+  player.children[1].children[2].children[1].rotation.z = gcontrols.LL_eR;
+  
+  player.rotation.y = gcontrols.rY;
+  player.position.x = gcontrols.posX;
+  player.position.y = gcontrols.posY;
+  */
+  renderer.render(scene, camera);
+}
+
+
+</script>
+</body>
+
+</html>

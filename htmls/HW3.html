@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+body {
+  overflow: hidden;
+}
+
+#div1{
+    position: absolute;
+  top: 10vh;
+  left: 10vw;
+  color: white;
+}
+
+</style>
+</head>
+
+<body> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<div id = 'div1'>
+  TANK<br>
+  W (go foward) S (fall back)<br>
+  Q E (TRUN TURRET)<br>
+  A D (TRUN TANK)<br>
+  1 2 (TRUN BARREL)<br>
+  Space (SHOOT)
+</div>
+<script>
+var renderer, camera, controls, scene, BARREL, TURRET, TANK;
+var cannon, light;
+var thetaTURRET = 0;
+var thetaTANK = 0;
+var thetaBARREL = -Math.PI/2;
+var keyboard = new KeyboardState();
+var vector, gforce, target;
+var associate, stopped = true;
+var tmpball = new THREE.Mesh(new THREE.SphereGeometry(1.5, 20, 20), new THREE.MeshLambertMaterial({
+    color: 0xffff00
+  }));
+class Cannonball{
+    constructor(posX, posY){
+      this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 20, 20), new THREE.MeshLambertMaterial({
+    color: 0xffff00
+  }));
+      this.mesh.position.set(posX, posY, 0);
+      this.vx = 0;
+      this.vy = 0;
+    }
+    
+    start(vx, vy){
+      this.vx = vx;
+      this.vy = vy;
+      stopped = false;
+    }
+    
+    update(dt){
+	    this.vy += (-10 * dt);
+      this.mesh.position.x += this.vx;
+      this.mesh.position.y += this.vy * dt;
+      if (this.mesh.position.y < -15) {
+        this.mesh.position.y = -15;
+        associate.remove(this.mesh);
+        stopped = true; 
+      }
+    }
+}
+init();
+animate();
+
+
+ 
+function init() {
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.y = 200;
+  camera.position.z = 150;
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  scene = new THREE.Scene();
+
+  stats = new Stats();
+  stats.domElement.style.position = 'absolute';
+  stats.domElement.style.bottom = '5px';
+  stats.domElement.style.left = '10px';
+  stats.domElement.style.zIndex = 100;
+  document.body.appendChild(stats.domElement);
+
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'lightgreen');
+  var axes = new THREE.AxisHelper(10);
+  scene.add(axes);
+  scene.add(gridXZ);
+  
+  light = new THREE.PointLight(0xffffff);
+  light.position.set(100, 300, 200);
+   scene.add(light);
+   
+  window.addEventListener('resize', onWindowResize, false);
+  associate = new THREE.Object3D();
+  BARREL = makeBarrel();
+  BARREL.add(associate);
+  BARREL.position.set(10, 0, 0);
+  TURRET = makeTurret();
+  TURRET.add(associate);
+  TURRET.add(BARREL);
+  TURRET.position.set(10, 10, 0);
+  TANK = makeTank();
+  TANK.add(TURRET);
+  TANK.position.set(-20, 5, -10);
+  scene.add(TANK);
+  vector = 5;
+  target = buildTarget();
+  scene.add(target);
+}
+function random(){
+ var a = Math.random()*200 - 100 ;
+  return a;
+}
+function buildTarget(){
+  var goal = new THREE.Mesh(new THREE.SphereGeometry(10, 20, 20),new THREE.MeshLambertMaterial({color: 0x99FFFF,side: THREE.DoubleSide}));
+  goal.position.x = random();
+  goal.position.z = random();
+  goal.position.y = 10;
+  return goal;
+}
+
+function makeBarrel() {
+  var barrel = new THREE.Object3D();
+  var cyl1 = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 10, 32), new THREE.MeshLambertMaterial({
+    color: 0xffff00
+  }));
+  var cyl2 = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 10, 32),new THREE.MeshLambertMaterial({
+    color: 0xffff00
+  }));
+  cyl1.position.set(0, 5, 0);
+  cyl2.rotation.x = Math.PI/2;
+  barrel.add(cyl1);
+  barrel.add(cyl2);
+  barrel.rotation.z = -Math.PI/2; 
+  return barrel;
+}   
+function makeTurret() {
+    var turret = new THREE.Object3D();
+    var cyl = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 10, 32), new THREE.MeshLambertMaterial({
+    color: 0xffff00
+  }));
+    turret.add(cyl);
+    return turret;
+}
+function makeTank() {
+  var tank = new THREE.Object3D();
+  var mainbody = new THREE.Mesh(new THREE.BoxGeometry(40, 10, 20), new THREE.MeshLambertMaterial({
+    color: 0xffff00
+  }));
+  tank.add(mainbody);
+  return tank;
+}
+function onWindowResize() {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
+
+function animate() {
+  controls.update();
+  stats.update();
+  keyboard.update();
+  thetaTANK %= Math.PI*2;
+  if (stopped){
+    if(keyboard.down("space")){
+      var canbalX = 10 + 10 * Math.cos(thetaBARREL + Math.PI/2);
+      var canbalY = 10 * Math.sin(thetaBARREL + Math.PI/2);
+      cannon = new Cannonball(canbalX, canbalY);
+      associate.add(cannon.mesh);
+      cannon.start(vector * Math.cos(thetaBARREL + Math.PI/2), vector * Math.sin(thetaBARREL + Math.PI/2));
+    }
+    else if (keyboard.pressed ('W')) {     
+      TANK.position.x += 0.5 * Math.cos(thetaTANK);
+      TANK.position.z -= 0.5 * Math.sin(thetaTANK);
+  } else if (keyboard.pressed ('S')) {
+    TANK.position.x -= 0.5 * Math.cos(thetaTANK);
+    TANK.position.z += 0.5 * Math.sin(thetaTANK);  	
+  } else if (keyboard.pressed ('A')) {
+    thetaTANK += 0.02;
+  } else if (keyboard.pressed ('D') ) {
+    thetaTANK -= 0.02;
+  }else if(keyboard.pressed ('Q') && thetaTURRET <= Math.PI){
+    thetaTURRET += 0.02;
+  }else if(keyboard.pressed ('E') && thetaTURRET >= -Math.PI){
+    thetaTURRET -= 0.02;
+  }
+  else if(keyboard.pressed ('1') && thetaBARREL <= -Math.PI/3){
+    thetaBARREL += 0.02;
+  }else if(keyboard.pressed ('2') && thetaBARREL >= -Math.PI/1.8){
+    thetaBARREL -= 0.02;
+  }
+  }else{
+    cannon.update(0.05);
+  }
+  
+  BARREL.rotation.z = thetaBARREL;
+  TURRET.rotation.y = thetaTURRET;
+  TANK.rotation.y = thetaTANK;
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+window.focus();
+
+</script>
+</body>
+
+</html>

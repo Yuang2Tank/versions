@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+body{
+  overflow: hidden;
+}
+#div1 {
+  position: absolute;
+  top: 5vh;
+  left: 30vw;
+  color: white;
+}
+#mybutton2{
+}
+#myinput1{
+  background-color: transparent;
+  border: 0px;
+}
+
+</style>
+</head>
+
+<body> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js"></script>
+<div id = 'div1'>
+  <button id = 'mybutton1'>STOP</button>
+  <button id = 'mybutton2'>CHANGE TO SECTOR</button>
+  <br>
+  <br>
+  <p id = 'mytext'>ANALOG</p>
+</div>
+
+<script>
+var renderer, camera, controls, scenevar, box, fan, box2, inbox, inbox2;
+var quatz = true;
+var turn = true;
+init();
+animate();
+
+function init() {
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  
+  camera.position.y = 200;
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  scene = new THREE.Scene();
+  
+  inbox = new THREE.Mesh(new THREE.BoxGeometry(48, 1, 2), new THREE.MeshBasicMaterial({
+    color: 0x000000
+  }));
+  inbox.position.set(0, 2 , -24);
+  inbox.rotation.y = -Math.PI/2 ;
+  box = new THREE.Object3D();
+  box.add(inbox);
+  scene.add(box);
+  
+  inbox2 = new THREE.Mesh(new THREE.BoxGeometry(48, 1, 2), new THREE.MeshBasicMaterial({
+    color: 0x000000
+  }));
+  inbox2.position.set(0, 2 , -24);
+  inbox2.rotation.y = -Math.PI/2 ;  
+  box2 = new THREE.Object3D();
+  box2.add(inbox2);
+  scene.add(box2);
+  inbox2.material.visible = false;
+  
+  fan = new THREE.Mesh(new THREE.RingGeometry(1, 50, 32), new THREE.MeshBasicMaterial({
+    color: 0x9b7c60,
+    side: THREE.DoubleSide
+  }));
+  fan.rotation.x = -Math.PI/2;
+  fan.position.y = 1;
+  scene.add(fan);
+  fan.material.visible = false;
+  
+  var ring = new THREE.Mesh( new THREE.RingBufferGeometry( 1, 50, 32 ), new THREE.MeshBasicMaterial( { color: 0xFFFFFF, side: THREE.DoubleSide   } ) );
+  ring.rotation.x = -Math.PI/2;
+  scene.add( ring );
+  
+  var cyl = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 3, 32), new THREE.MeshBasicMaterial( { color: 0x777777}));
+  cyl.position.y = 1.6;
+  scene.add(cyl); 
+  
+  var twelve = new THREE.Mesh(new THREE.BoxGeometry(15, 1, 2), new THREE.MeshBasicMaterial({ color: 0x8c88ad }));
+  twelve.position.y = 0.6;
+  twelve.position.z = -42.5
+  twelve.rotation.y = Math.PI/2;
+  scene.add(twelve);
+  window.addEventListener('resize', onWindowResize, false);
+
+}
+$('#mybutton1').click(function(){
+    turn = !turn;
+});
+$('#mybutton2').click(function(){
+    if($('#mybutton2').text() == "CHANGE TO SECTOR"){
+      $('#mybutton2').text("CHANGE TO QUARTZ");
+      $('#mytext').text("SECTOR");
+      fan.material.visible = true;
+      inbox.material.visible = false;
+    }
+    else if($('#mybutton2').text() == "CHANGE TO QUARTZ"){
+      $('#mybutton2').text("CHANGE TO ANALOG");
+      $('#mytext').text("QUARTZ");
+      inbox2.material.visible = true;
+      fan.material.visible = false;
+    }
+    else{
+      $('#mybutton2').text("CHANGE TO SECTOR");
+      $('#mytext').text("ANALOG");
+      inbox2.material.visible = false;
+      inbox.material.visible = true;
+    }
+    
+});
+
+
+function onWindowResize() {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
+
+function animate() {
+  animate.angle = animate.angle || 0;
+  if(turn){
+    animate.angle -= Math.PI/1800;
+  }
+  
+  animate.angle %= Math.PI*2;
+  if(quatz){
+    animate.quatz1 = animate.angle;
+    quatz = false;
+  }
+  else{
+    if((animate.quatz1 - animate.angle) >= Math.PI/30){
+      box2.rotation.y = animate.angle;
+      quatz = true;
+    }
+    else if(animate.angle.toFixed(2) == 0){
+      box2.rotation.y = 0;
+      animate.quatz1 = 0;
+    }
+  }
+  fan.geometry = new THREE.RingGeometry (1, 50, 32, 2, Math.PI/2, animate.angle);
+  box.rotation.y = animate.angle;
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+
+</script>
+</body>
+
+</html>
