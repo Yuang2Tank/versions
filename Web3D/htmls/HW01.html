@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+
+
+</style>
+</head>
+
+<body>
+<div>
+  <img src="https://i.imgur.com/omX5Drl.png" style="position:absolute;top:0vw;left:0vw;width:70vw;z-index:-1">
+  <button id='stopRun'>PAUSE</button>
+  <button id='timeRandom'>TIME CONTROLOR - SIMPLE</button>
+</div>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script>
+var run = true, light, light1, light2, light3, timer = true;
+class Light {
+  
+  constructor(posX, posY) {
+  	// create/append div dynamically
+    // https://stackoverflow.com/questions/14004117/create-div-and-append-div-dynamically
+    this.time;
+    this.element = document.createElement ('div');
+    //this = iDiv;
+    this.element.id = 'light';
+    // set element style attribute
+    //https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style
+    this.element.style.cssText = "position:absolute;width:40px;height:40px;border-radius:30px;z-index:1"; 
+	  this.element.style.top = ''+posX+'vw';
+    this.element.style.left = ''+posY+'vw';
+    // CSS color property: https://www.w3schools.com/cssref/pr_text_color.asp
+    // hsl: https://www.w3schools.com/colors/colors_hsl.asp
+    this.element.style.background = "hsl(89, 43%, 51%)";
+    document.getElementsByTagName('body')[0].appendChild(this.element);
+  }
+
+	changeColor() {
+  	// https://stackoverflow.com/questions/45147661/javascript-recursion-within-a-class/45147713
+    var self = this;
+  	var hue = Math.random()*200;
+  	self.element.style.background = "hsl(" + hue + ", 43%, 51%)";  
+    if(timer)
+      this.time = setTimeout (function() { self.changeColor() } , 500);
+    else
+      this.time = setTimeout (function() { self.changeColor() } , 1000 + Math.random()*1000);
+		// setTimeout ( self.changeColor , 1000);  // why this is not working ...
+  }
+}
+$('#stopRun').click(function(){
+  if(run){
+    light.element.style.background = "hsl(89, 20%, 20%)";
+    light1.element.style.background = "hsl(89, 20%, 20%)";
+    light2.element.style.background = "hsl(89, 20%, 20%)";
+    light3.element.style.background = "hsl(89, 20%, 20%)";
+	  clearTimeout(light.time);
+    clearTimeout(light1.time);
+    clearTimeout(light2.time);
+    clearTimeout(light3.time);
+	 } 
+	else{
+		light.changeColor();
+    light1.changeColor();
+    light2.changeColor();
+    light3.changeColor();
+	}
+	  run =! run;
+  });
+  $('#timeRandom').click(function(){
+  if(timer)
+    $('#timeRandom').text('TIME CONTROLOR - COMPLEX');
+  else
+    $('#timeRandom').text('TIME CONTROLOR - SIMPLE')
+    timer =! timer;
+  });
+////////////////////////////////
+init();
+
+function init() {
+  light = new Light(20, 30);
+  light1 = new Light(10, 20);
+  light2 = new Light(30, 40);
+  light3 = new Light(50, 20);
+  light.changeColor();
+  light1.changeColor();
+  light2.changeColor();
+  light3.changeColor();
+}
+
+</script>
+</body>
+
+</html>
