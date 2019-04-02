@@ -1,0 +1,255 @@
+﻿<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+
+</style>
+</head>
+
+<body>
+<div id="info">HW 002<a href="hw02.png">My Floor Plan</a><br>
+<button id="cameraToggle">Camera Toggle</button>
+<button id="lightToggle">Gallery Light Toggle</button>
+<br>
+  Spotlight Intensity <input type="range" id='myRange' min="1" max="100" value="50">
+  </div>
+  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/94/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+ 
+<script>
+var camera, scene, renderer, camera2;
+var keyboard = new KeyboardState();
+var angle = 0, lights = [], light1, toggle1 = false, toggle2 = false;
+class makeSpotLight{
+  constructor(pos, look){
+    this.mesh = new THREE.Object3D();
+    let cylinder = new THREE.Mesh(new THREE.CylinderGeometry( 1, 5, 10, 32 ), new THREE.MeshPhongMaterial({color:0x38daff}));
+    cylinder.rotation.x = -Math.PI/2; 
+    this.mesh.add(cylinder);
+    this.mesh.position.copy(pos);
+    this.mesh.lookAt(look.position);
+    scene.add(this.mesh);
+    this.light = new THREE.SpotLight( 0xffffff );
+    this.light.target = look;
+    this.light.position.copy(pos);
+    this.light.castShadow = true;
+
+    this.light.shadow.mapSize.width = 1024;
+    this.light.shadow.mapSize.height = 1024;
+		this.light.distance = 150;
+    this.light.angle = Math.PI/4;
+    this.light.shadow.camera.near = 100;
+    this.light.shadow.camera.far = 500;
+    this.light.shadow.camera.fov = 50;
+    scene.add(this.light);
+  }
+
+}
+init();
+animate();
+
+function init() {
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  //camera.position.z = 50;
+  camera.position.y = 450;
+  camera.lookAt(0, 0, 0);
+  camera2 = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera2.position.y = 300;
+  camera2.position.z = 200;
+  camera2.position.x = -200;
+  camera2.lookAt(0, 0, 0);
+  scene.add(camera);
+  scene.add(camera2);
+  var light2 = new THREE.AmbientLight(0xffffff, 0.3);
+  
+  light1 = new THREE.DirectionalLight( 0xffffff, 1, 100 );
+  light1.position.set( 0, 1, 0 ); 			//default; light shining from top
+  light1.castShadow = true;            // default false
+
+  //Set up shadow properties for the light
+  light1.shadow.mapSize.width = 512;  // default
+  light1.shadow.mapSize.height = 512; // default
+  light1.shadow.camera.near = 0.5;    // default
+  light1.shadow.camera.far = 500;     // default
+  scene.add(light1, light2);
+  //scene.add(new THREE.PointLightHelper(light, 5));
+  
+  //let gridXZ = new THREE.GridHelper(300, 30, 'red', 'white');
+  //scene.add(gridXZ);
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+
+  //let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  document.body.appendChild(renderer.domElement);
+  ////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+  
+  makeGallery();
+  makePicturesAndLights();
+  makeTable();
+}
+function makeGallery(){
+  var gallery = new THREE.Object3D();
+  let loader = new THREE.TextureLoader();
+  loader.setCrossOrigin ('');
+  let texture = loader.load('https://i.imgur.com/3avRlIl.jpg');
+  texture.repeat.set(10, 10);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  let plane = new THREE.Mesh(new THREE.PlaneGeometry(300 , 300), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  plane.rotation.x = -Math.PI/2;
+  let wall = new THREE.Mesh(new THREE.BoxGeometry(110, 50, 5), new THREE.MeshPhongMaterial());
+  wall.position.set(-95, 25, 30);
+  let wall1 = new THREE.Mesh(new THREE.BoxGeometry(300, 50, 5), new THREE.MeshPhongMaterial());
+  wall1.position.set(0, 25, -150);
+  let wall2 = new THREE.Mesh(new THREE.BoxGeometry(300, 50, 5), new THREE.MeshPhongMaterial());
+  wall2.position.set(0, 25, 150);
+  let wall3 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 300), new THREE.MeshPhongMaterial());
+  wall3.position.set(150, 25, 0);
+  let wall4 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 230), new THREE.MeshPhongMaterial());
+  wall4.position.set(-150, 25, -35);
+  let wall5 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 200), new THREE.MeshPhongMaterial());
+  wall5.position.set(30, 25, 50);
+  let wall6 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 20), new THREE.MeshPhongMaterial());
+  wall6.position.set(-150, 25, 140);
+  let wall7 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 30), new THREE.MeshPhongMaterial());
+  wall7.position.set( 30, 25, -135);
+  let wall8 = new THREE.Mesh(new THREE.BoxGeometry(30, 50, 5), new THREE.MeshPhongMaterial());
+  wall8.position.set( 45, 25, 0);
+  let wall9 = new THREE.Mesh(new THREE.BoxGeometry(30, 50, 5), new THREE.MeshPhongMaterial());
+  wall9.position.set( 135, 25, 0);
+  let seat = makeSeat(80);
+  seat.position.set(-90, 12, 50);
+  let seat2 = makeSeat(80);
+  seat2.position.set(-90, 12, 10);
+  let seat3 = makeSeat(60);
+  seat3.position.set(-100, 12, 135);
+  let table = makeTable();
+  table.position.set(-10, 25, 117.5)
+  gallery.add(plane, wall, wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8, wall9, seat, seat2, seat3, table);
+  gallery.traverse (
+	 function (mesh) {
+		if (mesh instanceof THREE.Mesh) {
+		  mesh.castShadow = true;
+		  mesh.receiveShadow = true;
+		}
+	  }
+  );
+  scene.add(gallery);
+}
+function makePicturesAndLights(){
+  let pic = new THREE.Mesh(new THREE.BoxGeometry(80, 40, 3), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set(-60, 25, -147.5);
+  let light = new makeSpotLight(new THREE.Vector3( -60, 50, -97.5), pic);
+  lights.push(light);
+  scene.add(pic);
+  pic = new THREE.Mesh(new THREE.BoxGeometry(3, 40, 80), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set(-147.5, 25, -60);
+  light = new makeSpotLight(new THREE.Vector3( -97.5, 50, -60), pic);
+  lights.push(light);
+  scene.add(pic);
+  pic = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 3), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set( 90, 25, -147.5);
+  light = new makeSpotLight(new THREE.Vector3( 90, 50, -112.5), pic);
+  lights.push(light);
+  scene.add(pic);
+  pic = new THREE.Mesh(new THREE.BoxGeometry(3, 30, 60), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set( 147.5, 25, -75);
+  light = new makeSpotLight(new THREE.Vector3( 112.5, 50, -75), pic);
+  lights.push(light);
+  scene.add(pic);
+  pic = new THREE.Mesh(new THREE.BoxGeometry(3, 40, 80), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set(147.5, 25, 75);
+  light = new makeSpotLight(new THREE.Vector3( 97.5, 50, 75), pic);
+  lights.push(light);
+  scene.add(pic);
+  pic = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 3), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set( 90, 25, 147.5);
+  light = new makeSpotLight(new THREE.Vector3( 90, 50, 112.5), pic);
+  lights.push(light);
+  scene.add(pic);
+}
+function makeSeat(length){
+  var Seat = new THREE.Object3D();
+  let box1 = new THREE.Mesh(new THREE.BoxGeometry(length, 2, 12), new THREE.MeshPhongMaterial({color:0x888888}));
+  let box2 = new THREE.Mesh(new THREE.BoxGeometry( 2, 12, 12), new THREE.MeshPhongMaterial({color:0x888888}));
+  box2.position.set(-length/2 + 1, -6, 0);
+  let box3 = new THREE.Mesh(new THREE.BoxGeometry( 2, 12, 12), new THREE.MeshPhongMaterial({color:0x888888}));
+  box3.position.set(length/2 - 1, -6, 0);
+  //box1.position.set( -90, 15, 50)
+  Seat.add(box1, box2, box3);
+  return Seat;
+}
+function makeTable(){
+  var Table = new THREE.Object3D();
+  let box1 = new THREE.Mesh(new THREE.BoxGeometry(20, 25, 60), new THREE.MeshPhongMaterial({color:0xdddddd}));
+  box1.position.y = -12.5;
+  let box2 = new THREE.Mesh(new THREE.BoxGeometry(30, 2, 15), new THREE.MeshPhongMaterial({color:0xdddddd}));
+  box2.position.set( 25, -3, -22.5);
+  Table.add(box1, box2);
+  return Table;
+}
+$('#cameraToggle').click(function(){
+    toggle1 = !toggle1;
+});
+$('#lightToggle').click(function(){
+    toggle2 = !toggle2;
+});
+function animate() {
+
+	keyboard.update();
+  for(let i = 0; i<lights.length; i++)
+    lights[i].light.intensity = (($("#myRange").val()) / 100);
+  if(toggle2)
+    light1.intensity = 0.9;
+  else 
+    light1.intensity = 0.3;
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render() {
+  if(toggle1)
+    renderer.render(scene, camera2);
+  else 
+    renderer.render(scene, camera);
+}
+
+// important to add this 
+// in jsfiddle!
+window.focus();
+
+
+</script>
+</body>
+
+</html>
