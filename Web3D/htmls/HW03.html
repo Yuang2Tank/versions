@@ -1,0 +1,530 @@
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#container {
+  width: 45vw;
+  height: 45vw;
+  float: left;
+  background-color: yellow;
+  margin: 10px;
+}
+
+#items {
+  text-align: center;
+}
+
+#container2 {
+  width: 40vw;
+  height: 40vw;
+  float: left;
+  background-color: yellow;
+  margin: 10px;
+}
+
+#lightToggle {
+  width: 30vw;
+}
+
+
+
+p {
+  margin: 10px;
+  text-align: justify;
+}
+
+
+</style>
+</head>
+
+<body> 
+<h1 style="font-size:2em; text-align:center; margin:15px"> 
+<b>常見木管樂器展</b>
+</h1>
+<div id="items">
+<button id="lightToggle">Gallery Light Toggle</button>
+<select id="mySelect">
+  <option value="null">請選擇</option>
+　<option value="flute">長笛</option>
+　<option value="piccolo">短笛</option>
+　<option value="clarinet">單簧管</option>
+　<option value="sax">薩克斯風</option>
+  <option value="oboe">雙簧管</option>
+　<option value="bassoon">低音管</option>
+</select>
+<br>
+Spotlight Intensity <input type="range" id='myRange' min="1" max="100" value="50">
+</div>
+
+
+<hr>
+
+<div id="container">
+</div>
+<div id="container2">
+</div>
+<br>
+<div>
+<b>監視器畫面</b><br>
+(點選左手邊畫作或下拉選單選擇畫作)
+</div>
+<br>
+<hr>
+<p id = "myPara">
+</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r78/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>
+var scene, renderer, renderer1, sceneHUD, cameraHUD, myCamera, paintings = [];
+var mouse = new THREE.Vector2();
+var raycaster = new THREE.Raycaster();
+var rotateNum = 0, monitors = [];
+var rotationOriginals = [];
+var pickables = [], lights = [], light1, toggle2 = false;
+class makeSpotLight{
+  constructor(pos, look){
+    this.mesh = new THREE.Object3D();
+    let cylinder = new THREE.Mesh(new THREE.CylinderGeometry( 1, 5, 10, 32 ), new THREE.MeshPhongMaterial({color:0x38daff}));
+    cylinder.rotation.x = -Math.PI/2; 
+    this.mesh.add(cylinder);
+    this.mesh.position.copy(pos);
+    this.mesh.lookAt(look.position);
+    scene.add(this.mesh);
+    this.light = new THREE.SpotLight( 0xffffff );
+    this.light.target = look;
+    this.light.position.copy(pos);
+    this.light.castShadow = true;
+
+    this.light.shadow.mapSize.width = 1024;
+    this.light.shadow.mapSize.height = 1024;
+		this.light.distance = 150;
+    this.light.angle = Math.PI/4;
+    this.light.shadow.camera.near = 100;
+    this.light.shadow.camera.far = 500;
+    this.light.shadow.camera.fov = 50;
+    scene.add(this.light);
+  }
+
+}
+$("#mySelect").change(function(){
+  switch($("#mySelect").val()){
+    case 'null':
+    myCamera.position.set( 0, 450, 0);
+    myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+    $('#myPara').text('');
+    break;
+    case 'piccolo':
+    myCamera.position.set(-60, 25, -60);
+    myCamera.lookAt(pickables[0].position);
+    $('#myPara').text('短笛（piccolo），是長笛家族的一種變種樂器，名稱源自義大利文「flauto piccolo」，長度為普通長笛的一半。音域則比長笛高1個八度，所以部份義大利作曲家亦會以「ottavino」稱呼短笛。');
+    break;
+    case 'flute':
+    myCamera.position.set(-60, 25, -60);
+    myCamera.lookAt(pickables[1].position);
+    $('#myPara').text('長笛是現代管弦樂和室內樂中主要的高音旋律樂器，外型是一根開有數個音孔的圓柱型長管。早期的長笛是烏木或椰木製，現代多使用金屬的材質，比如普通的鎳銀合金到專業型的銀合金，金（9K、14K、18K、24K）以及白金等，也有表演者使用特殊的玻璃長笛。傳統木質長笛的音色特點是圓潤、溫暖、細膩，而金屬長笛的音色就比較明亮寬廣。不同材料的長笛完全根據演奏者的愛好選擇。到了海頓那個年代（1732-1809年），長笛已成為管絃樂團中不可或缺的一員。19世紀初葉是改善長笛的重要時期，原因是德國人貝姆（Theobald Boehm）發明了連動按鍵原理，後於1832年發明了開閉笛孔的機械裝置。1847年並將長笛的管型改良成為圓柱形，使其音色更均勻，音域也更為寬廣，演奏者也更容易吹奏出半音階，此一突破鞏固了長笛在樂團中的地位，也使得長笛獨奏曲大為增加，他的長笛比先前的長笛樂器的音色更強，更均勻，奠定了現代長笛的基礎。貝姆除了因改良長笛著名外，他還做了許多長笛獨奏曲，曲式包括變奏曲、幻想曲，並且改編許多曲式給中音長笛。後來亦用於單簧管、雙簧管與低音管。許多著名作曲家皆曾為長笛譜下動人的曲子。最有名的是巴哈的B小調組曲，莫札特的長笛協奏曲，貝多芬的長笛、小提琴、中提琴組成的小夜曲和德布西的長笛獨奏曲。現代管絃樂團通常配備兩名長笛手，負責不同聲部，但有時亦用於合奏，吹同樣的聲部。若需要明亮刺耳的高音時，第二長笛手亦須負責吹奏短笛（比長笛高八度）。長笛可配合絃樂組獨立吹奏，加上它的音色極富變化，故成為獨奏樂器首選。高音部分明亮清朗，低音部則空洞低沈。');
+    break;
+    case 'clarinet':
+    myCamera.position.set( 90, 25, -75);
+    myCamera.lookAt(pickables[2].position);
+    $('#myPara').text('單簧管，又稱豎笛、黑管，是一種木管樂器，從夏盧摩笛（法語：Chalumeau，一種古代的單簧低音樂器）發展而來的，形成於17世紀末，很有可能是由德國的長笛製造家丹納（Johann Denner，1655年—1707年）所發明的。最早為人所知的單簧管音樂收在阿姆斯特丹的羅傑（Estienne Roger）出版的曲集內（1716年再版）。從大約1780年起，它被一些最大的管弦樂隊採用。現代單簧管則是在1800—1850年發展而成的。單簧管由於音域寬，管樂隊或以管樂為主的軍樂隊的首席通常由單簧管手擔任。');
+    break;
+    case 'sax':
+    myCamera.position.set( 90, 25, -75);
+    myCamera.lookAt(pickables[3].position);
+    $('#myPara').text('薩克斯風（英語：Saxophone）是一種木管樂器，但是管體通常是用黃銅製造，使得薩克斯風同時具有銅管類樂器的特性，這也導致了在歸類上令不少人產生疑惑。由於從發聲原理上來看，薩克斯風和同樣使用單簧片的單簧管相同，所以便將它歸類為木管樂器。薩克斯風同時也是一種移調樂器，常見調性為E?和B?，也有C調和F調。中音薩克斯風以其菸斗狀的外形為人所熟知。');
+    break;
+    case 'oboe':
+    myCamera.position.set( 75, 25, 75);
+    myCamera.lookAt(pickables[4].position);
+    $('#myPara').text('雙簧管屬於木管樂器，屬於雙簧類樂器。「雙簧」是以兩塊簧片縛在一起，並透過簧片振動而發聲。它的音質獨特，在交響樂團中，經常在其他樂器的伴奏中以獨奏的形式出現。雙簧管是由蕭姆管（Shawm）發展而成的樂器。現今交響樂團演出前，會以雙簧管奏出的A(442Hz或440Hz)音來作為其他樂器調音的基礎。有一說這是因為在以往的樂器合奏中，舊式雙簧管是最難調準音的樂器，所花的時間亦較多，所以演奏前會先讓它調準音後才到其他樂器，這習慣後來便成為了樂團的常規；而根據現代的研究，雙簧管在演奏這個音高時，樂器的狀況最穩定，且音色較具穿透力，故用來作為樂團調音的標準。');
+    break;
+    case 'bassoon':
+    myCamera.position.set( 90, 25, 75);
+    myCamera.lookAt(pickables[5].position);
+    $('#myPara').text('低音管（英語：Bassoon，義大利語：Fagotto），或稱巴松管，在中國大陸又稱大管。其義大利文Fagotto來源於樂器的形狀──一綑木材，是木管樂器中雙簧樂器家族的成員，自19世紀，低音管衍變成現在的樣子。它在管弦樂團和室內樂中一直扮演著重要的角色，音色獨特，低音域結實而有力，中音域及高音域如男中音歌聲般的音色。');
+    break;
+  }
+  //console.log($("#mySelect").val());
+});
+init();
+animate();
+
+function init() {
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  var ww = $('#container').innerWidth();
+  var hh = $('#container').innerHeight();
+  renderer.setSize(ww, hh);
+  renderer.setClearColor(0x555555);
+  $('#container').append(renderer.domElement);
+  
+  renderer1 = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  ww = $('#container2').innerWidth();
+  hh = $('#container2').innerHeight();
+  renderer1.setSize(ww, hh);
+  renderer1.setClearColor(0x555555);
+  $('#container2').append(renderer1.domElement);
+  ////////////////////////////////
+  ////////////////////////////////
+  sceneHUD = new THREE.Scene();
+  cameraHUD = new THREE.OrthographicCamera(-10, 10, 10, -10, -10, 1600);
+  var fframe = new THREE.Mesh(new THREE.PlaneGeometry(20, 0.5), new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    depthTest: false
+  }));
+  var fframe1 = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 20), new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    depthTest: false
+  }));
+  var fleft = fframe1.clone();
+  fleft.position.set(10, 0, 0);
+  var fright = fframe1.clone();
+  fright.position.set(-10, 0, 0);
+  var fup = fframe.clone();
+  fup.position.set( 0, 10, 0);
+  var fdown = fframe.clone();
+  fdown.position.set(0, -10, 0);
+  sceneHUD.add(fup);
+  sceneHUD.add(fdown);
+  sceneHUD.add(fleft);
+  sceneHUD.add(fright);
+  ///////////////////////////////////
+  ///////////////////////////////////
+  scene = new THREE.Scene();
+  myCamera = new THREE.PerspectiveCamera(45, ww / hh, 1, 5000);
+  //myCamera.position.z = 100;
+  myCamera.position.y = 450;
+  myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+  
+  let camera = new THREE.PerspectiveCamera(45, ww / hh, 1, 5000);
+  camera.position.x = -140;
+  camera.position.y =50;
+  camera.position.z = 140;
+  camera.lookAt(new THREE.Vector3(0, 0, 50));
+  camera.rotation.x += Math.PI/18;
+  let rotationOriginal = camera.rotation.y;
+  rotationOriginals.push(rotationOriginal);
+  monitors.push(camera);
+  
+  camera = new THREE.PerspectiveCamera(45, ww / hh, 1, 5000);
+  camera.position.set(20, 50, 30);
+  camera.lookAt(new THREE.Vector3(-100, 25, -100));
+  rotationOriginal = camera.rotation.y;
+  rotationOriginals.push(rotationOriginal);
+  monitors.push(camera);
+  
+  camera = new THREE.PerspectiveCamera(45, ww / hh, 1, 5000);
+  camera.position.set(40, 50, -10);
+  camera.lookAt(new THREE.Vector3(100, 25, -100));
+  rotationOriginal = camera.rotation.y;
+  rotationOriginals.push(rotationOriginal);
+  monitors.push(camera);
+  
+  camera = new THREE.PerspectiveCamera(45, ww / hh, 1, 5000);
+  camera.position.set(40, 50, 10);
+  camera.lookAt(new THREE.Vector3(100, 25, 100));
+  rotationOriginal = camera.rotation.y;
+  rotationOriginals.push(rotationOriginal);
+  monitors.push(camera);
+	//let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  window.addEventListener('resize', onWindowResize, false);
+  //$('#container').on ("mousemove", onDocumentMouseMove);
+  window.addEventListener('mousedown', onDocumentMouseDown, false);
+ 	//////////////////////////////////////
+  //////////////////////////////////////
+  var light2 = new THREE.AmbientLight(0xffffff, 0.3);
+  
+  light1 = new THREE.DirectionalLight( 0xffffff, 1, 100 );
+  light1.position.set( 0, 1, 0 ); 			//default; light shining from top
+  light1.castShadow = true;            // default false
+
+  //Set up shadow properties for the light
+  light1.shadow.mapSize.width = 512;  // default
+  light1.shadow.mapSize.height = 512; // default
+  light1.shadow.camera.near = 0.5;    // default
+  light1.shadow.camera.far = 500;     // default
+  scene.add(light1, light2);
+  makeGallery();
+  makePicturesAndLights();
+  makeTable();
+  //////////////////////////////////////
+  //////////////////////////////////////
+  //renderer.autoClear = false;
+  renderer1.autoClear = false;
+}
+function makeGallery(){
+  var gallery = new THREE.Object3D();
+  let loader = new THREE.TextureLoader();
+  loader.setCrossOrigin ('');
+  let texture = loader.load('https://i.imgur.com/3avRlIl.jpg');
+  texture.repeat.set(10, 10);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
+  let plane = new THREE.Mesh(new THREE.PlaneGeometry(300 , 300), new THREE.MeshPhongMaterial({
+    map: texture
+  }));
+  plane.rotation.x = -Math.PI/2;
+  let wall = new THREE.Mesh(new THREE.BoxGeometry(110, 50, 5), new THREE.MeshPhongMaterial());
+  wall.position.set(-95, 25, 30);
+  let wall1 = new THREE.Mesh(new THREE.BoxGeometry(300, 50, 5), new THREE.MeshPhongMaterial());
+  wall1.position.set(0, 25, -150);
+  let wall2 = new THREE.Mesh(new THREE.BoxGeometry(300, 50, 5), new THREE.MeshPhongMaterial());
+  wall2.position.set(0, 25, 150);
+  let wall3 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 300), new THREE.MeshPhongMaterial());
+  wall3.position.set(150, 25, 0);
+  let wall4 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 230), new THREE.MeshPhongMaterial());
+  wall4.position.set(-150, 25, -35);
+  let wall5 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 200), new THREE.MeshPhongMaterial());
+  wall5.position.set(30, 25, 50);
+  let wall6 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 20), new THREE.MeshPhongMaterial());
+  wall6.position.set(-150, 25, 140);
+  let wall7 = new THREE.Mesh(new THREE.BoxGeometry(5, 50, 30), new THREE.MeshPhongMaterial());
+  wall7.position.set( 30, 25, -135);
+  let wall8 = new THREE.Mesh(new THREE.BoxGeometry(30, 50, 5), new THREE.MeshPhongMaterial());
+  wall8.position.set( 45, 25, 0);
+  let wall9 = new THREE.Mesh(new THREE.BoxGeometry(30, 50, 5), new THREE.MeshPhongMaterial());
+  wall9.position.set( 135, 25, 0);
+  let seat = makeSeat(80);
+  seat.position.set(-90, 12, 50);
+  let seat2 = makeSeat(80);
+  seat2.position.set(-90, 12, 10);
+  let seat3 = makeSeat(60);
+  seat3.position.set(-100, 12, 135);
+  let table = makeTable();
+  table.position.set(-10, 25, 117.5)
+  gallery.add(plane, wall, wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8, wall9, seat, seat2, seat3, table);
+  gallery.traverse (
+	 function (mesh) {
+		if (mesh instanceof THREE.Mesh) {
+		  mesh.castShadow = true;
+		  mesh.receiveShadow = true;
+		}
+	  }
+  );
+  scene.add(gallery);
+}
+function makePicturesAndLights(){
+  let loader = new THREE.TextureLoader();
+  loader.setCrossOrigin ('');
+  let texture = loader.load('https://i.imgur.com/uifhVxq.jpg');
+  let poster = new THREE.Mesh(new THREE.PlaneGeometry(50, 30), new THREE.MeshPhongMaterial({map: texture}));
+  scene.add(poster);
+  poster.name = 'piccolo';
+  pickables.push(poster);
+  poster.position.set(-60, 25, -145.5);
+  let pic = new THREE.Mesh(new THREE.BoxGeometry(80, 40, 3), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set(-60, 25, -147.5);
+  let light = new makeSpotLight(new THREE.Vector3( -60, 50, -97.5), pic);
+  lights.push(light);
+  scene.add(pic);
+  
+  texture = loader.load('https://i.imgur.com/jJ24E2E.jpg');
+  poster = new THREE.Mesh(new THREE.PlaneGeometry(50, 30), new THREE.MeshPhongMaterial({map: texture}));
+  scene.add(poster);
+  poster.name = 'flute';
+  pickables.push(poster);
+  poster.position.set(-145.5, 25, -60);
+  poster.rotation.y = Math.PI/2;
+  pic = new THREE.Mesh(new THREE.BoxGeometry(3, 40, 80), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set(-147.5, 25, -60);
+  light = new makeSpotLight(new THREE.Vector3( -97.5, 50, -60), pic);
+  lights.push(light);
+  scene.add(pic);
+  
+  texture = loader.load('https://i.imgur.com/b5M2ujL.jpg');
+  poster = new THREE.Mesh(new THREE.PlaneGeometry(40, 24), new THREE.MeshPhongMaterial({map: texture}));
+  scene.add(poster);
+  poster.name = 'clarinet';
+  pickables.push(poster);
+  poster.position.set(90, 25, -145.5);
+  pic = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 3), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set( 90, 25, -147.5);
+  light = new makeSpotLight(new THREE.Vector3( 90, 50, -112.5), pic);
+  lights.push(light);
+  scene.add(pic);
+  
+  texture = loader.load('https://i.imgur.com/1BsGgHM.jpg');
+  poster = new THREE.Mesh(new THREE.PlaneGeometry(40, 24), new THREE.MeshPhongMaterial({map: texture}));
+  scene.add(poster);
+  poster.name = 'sax';
+  pickables.push(poster);
+  poster.position.set(145.5, 25, -75);
+  poster.rotation.y = -Math.PI/2;
+  pic = new THREE.Mesh(new THREE.BoxGeometry(3, 30, 60), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set( 147.5, 25, -75);
+  light = new makeSpotLight(new THREE.Vector3( 112.5, 50, -75), pic);
+  lights.push(light);
+  scene.add(pic);
+  
+  texture = loader.load('https://i.imgur.com/EDxMnSA.jpg');
+  poster = new THREE.Mesh(new THREE.PlaneGeometry(50, 30), new THREE.MeshPhongMaterial({map: texture}));
+  scene.add(poster);
+  poster.name = 'oboe';
+  pickables.push(poster);
+  poster.position.set(145.5, 25, 75);
+  poster.rotation.y = -Math.PI/2;
+  pic = new THREE.Mesh(new THREE.BoxGeometry(3, 40, 80), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set(147.5, 25, 75);
+  light = new makeSpotLight(new THREE.Vector3( 97.5, 50, 75), pic);
+  lights.push(light);
+  scene.add(pic);
+  
+  texture = loader.load('https://i.imgur.com/o9LTSeZ.jpg');
+  poster = new THREE.Mesh(new THREE.PlaneGeometry(40, 24), new THREE.MeshPhongMaterial({map: texture}));
+  scene.add(poster);
+  poster.name = 'bassoon';
+  pickables.push(poster);
+  poster.position.set(90, 25, 145.5);
+  poster.rotation.y = -Math.PI;
+  pic = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 3), new THREE.MeshPhongMaterial({color:0x9f4fef}));
+  pic.position.set( 90, 25, 147.5);
+  light = new makeSpotLight(new THREE.Vector3( 90, 50, 112.5), pic);
+  lights.push(light);
+  scene.add(pic);
+}
+function makeSeat(length){
+  var Seat = new THREE.Object3D();
+  let box1 = new THREE.Mesh(new THREE.BoxGeometry(length, 2, 12), new THREE.MeshPhongMaterial({color:0x888888}));
+  let box2 = new THREE.Mesh(new THREE.BoxGeometry( 2, 12, 12), new THREE.MeshPhongMaterial({color:0x888888}));
+  box2.position.set(-length/2 + 1, -6, 0);
+  let box3 = new THREE.Mesh(new THREE.BoxGeometry( 2, 12, 12), new THREE.MeshPhongMaterial({color:0x888888}));
+  box3.position.set(length/2 - 1, -6, 0);
+  //box1.position.set( -90, 15, 50)
+  Seat.add(box1, box2, box3);
+  return Seat;
+}
+function makeTable(){
+  var Table = new THREE.Object3D();
+  let box1 = new THREE.Mesh(new THREE.BoxGeometry(20, 25, 60), new THREE.MeshPhongMaterial({color:0xdddddd}));
+  box1.position.y = -12.5;
+  let box2 = new THREE.Mesh(new THREE.BoxGeometry(30, 2, 15), new THREE.MeshPhongMaterial({color:0xdddddd}));
+  box2.position.set( 25, -3, -22.5);
+  Table.add(box1, box2);
+  return Table;
+}
+function onWindowResize() {
+  var ww = $('#container').innerWidth();
+  var hh = $('#container').innerHeight();
+  renderer.setSize(ww, hh);
+  ww = $('#container2').innerWidth();
+  hh = $('#container2').innerHeight();
+  renderer1.setSize(ww, hh);
+}
+
+function onDocumentMouseDown(event) {
+  var viewportPos =$('#container').get(0).getBoundingClientRect(); 
+	mouse.x = ((event.clientX - viewportPos.left) / $('#container').innerWidth()) * 2 - 1;
+  mouse.y = -((event.clientY - viewportPos.top) / $('#container').innerHeight()) * 2 + 1;
+
+	raycaster.setFromCamera(mouse, myCamera);
+  var intersects = raycaster.intersectObjects (pickables);
+  if (intersects.length > 0) {
+    //cyl.position.copy(intersects[0].point);
+    //alert (intersects[0].object.name + " is picked!")
+    switch(intersects[0].object.name){
+    case 'piccolo':
+    myCamera.position.set(-60, 25, -60);
+    myCamera.lookAt(pickables[0].position);
+    $("#mySelect").val('piccolo');
+    $('#myPara').text('短笛（piccolo），是長笛家族的一種變種樂器，名稱源自義大利文「flauto piccolo」，長度為普通長笛的一半。音域則比長笛高1個八度，所以部份義大利作曲家亦會以「ottavino」稱呼短笛。');
+    break;
+    case 'flute':
+    myCamera.position.set(-60, 25, -60);
+    myCamera.lookAt(pickables[1].position);
+    $("#mySelect").val('flute');
+    $('#myPara').text('長笛是現代管弦樂和室內樂中主要的高音旋律樂器，外型是一根開有數個音孔的圓柱型長管。早期的長笛是烏木或椰木製，現代多使用金屬的材質，比如普通的鎳銀合金到專業型的銀合金，金（9K、14K、18K、24K）以及白金等，也有表演者使用特殊的玻璃長笛。傳統木質長笛的音色特點是圓潤、溫暖、細膩，而金屬長笛的音色就比較明亮寬廣。不同材料的長笛完全根據演奏者的愛好選擇。到了海頓那個年代（1732-1809年），長笛已成為管絃樂團中不可或缺的一員。19世紀初葉是改善長笛的重要時期，原因是德國人貝姆（Theobald Boehm）發明了連動按鍵原理，後於1832年發明了開閉笛孔的機械裝置。1847年並將長笛的管型改良成為圓柱形，使其音色更均勻，音域也更為寬廣，演奏者也更容易吹奏出半音階，此一突破鞏固了長笛在樂團中的地位，也使得長笛獨奏曲大為增加，他的長笛比先前的長笛樂器的音色更強，更均勻，奠定了現代長笛的基礎。貝姆除了因改良長笛著名外，他還做了許多長笛獨奏曲，曲式包括變奏曲、幻想曲，並且改編許多曲式給中音長笛。後來亦用於單簧管、雙簧管與低音管。許多著名作曲家皆曾為長笛譜下動人的曲子。最有名的是巴哈的B小調組曲，莫札特的長笛協奏曲，貝多芬的長笛、小提琴、中提琴組成的小夜曲和德布西的長笛獨奏曲。現代管絃樂團通常配備兩名長笛手，負責不同聲部，但有時亦用於合奏，吹同樣的聲部。若需要明亮刺耳的高音時，第二長笛手亦須負責吹奏短笛（比長笛高八度）。長笛可配合絃樂組獨立吹奏，加上它的音色極富變化，故成為獨奏樂器首選。高音部分明亮清朗，低音部則空洞低沈。');
+    break;
+    case 'clarinet':
+    myCamera.position.set( 90, 25, -75);
+    myCamera.lookAt(pickables[2].position);
+    $("#mySelect").val('clarinet');
+    $('#myPara').text('單簧管，又稱豎笛、黑管，是一種木管樂器，從夏盧摩笛（法語：Chalumeau，一種古代的單簧低音樂器）發展而來的，形成於17世紀末，很有可能是由德國的長笛製造家丹納（Johann Denner，1655年—1707年）所發明的。最早為人所知的單簧管音樂收在阿姆斯特丹的羅傑（Estienne Roger）出版的曲集內（1716年再版）。從大約1780年起，它被一些最大的管弦樂隊採用。現代單簧管則是在1800—1850年發展而成的。單簧管由於音域寬，管樂隊或以管樂為主的軍樂隊的首席通常由單簧管手擔任。');
+    break;
+    case 'sax':
+    myCamera.position.set( 90, 25, -75);
+    myCamera.lookAt(pickables[3].position);
+    $("#mySelect").val('sax');
+    $('#myPara').text('薩克斯風（英語：Saxophone）是一種木管樂器，但是管體通常是用黃銅製造，使得薩克斯風同時具有銅管類樂器的特性，這也導致了在歸類上令不少人產生疑惑。由於從發聲原理上來看，薩克斯風和同樣使用單簧片的單簧管相同，所以便將它歸類為木管樂器。薩克斯風同時也是一種移調樂器，常見調性為E?和B?，也有C調和F調。中音薩克斯風以其菸斗狀的外形為人所熟知。');
+    break;
+    case 'oboe':
+    myCamera.position.set( 75, 25, 75);
+    myCamera.lookAt(pickables[4].position);
+    $("#mySelect").val('oboe');
+    $('#myPara').text('雙簧管屬於木管樂器，屬於雙簧類樂器。「雙簧」是以兩塊簧片縛在一起，並透過簧片振動而發聲。它的音質獨特，在交響樂團中，經常在其他樂器的伴奏中以獨奏的形式出現。雙簧管是由蕭姆管（Shawm）發展而成的樂器。現今交響樂團演出前，會以雙簧管奏出的A(442Hz或440Hz)音來作為其他樂器調音的基礎。有一說這是因為在以往的樂器合奏中，舊式雙簧管是最難調準音的樂器，所花的時間亦較多，所以演奏前會先讓它調準音後才到其他樂器，這習慣後來便成為了樂團的常規；而根據現代的研究，雙簧管在演奏這個音高時，樂器的狀況最穩定，且音色較具穿透力，故用來作為樂團調音的標準。');
+    break;
+    case 'bassoon':
+    myCamera.position.set( 90, 25, 75);
+    myCamera.lookAt(pickables[5].position);
+    $("#mySelect").val('bassoon');
+    $('#myPara').text('低音管（英語：Bassoon，義大利語：Fagotto），或稱巴松管，在中國大陸又稱大管。其義大利文Fagotto來源於樂器的形狀──一綑木材，是木管樂器中雙簧樂器家族的成員，自19世紀，低音管衍變成現在的樣子。它在管弦樂團和室內樂中一直扮演著重要的角色，音色獨特，低音域結實而有力，中音域及高音域如男中音歌聲般的音色。');
+    break;
+  }
+  }
+}
+$('#lightToggle').click(function(){
+    toggle2 = !toggle2;
+});
+function animate() {
+  requestAnimationFrame(animate);
+  for(let i = 0; i<lights.length; i++)
+    lights[i].light.intensity = (($("#myRange").val()) / 100);
+  if(toggle2)
+    light1.intensity = 0.9;
+  else 
+    light1.intensity = 0.3;
+  rotateNum +=0.01;
+  monitors[0].rotation.y = rotationOriginals[0] + Math.PI/12 * Math.sin(rotateNum);
+  monitors[1].rotation.y = rotationOriginals[1] + Math.PI/12 * Math.sin(rotateNum);
+  monitors[2].rotation.y = rotationOriginals[2] + Math.PI/12 * Math.sin(rotateNum);
+  monitors[3].rotation.y = rotationOriginals[3] + Math.PI/12 * Math.sin(rotateNum);
+  render();
+}
+
+function render() {
+  renderer.render(scene, myCamera);
+  
+  
+  WW = $('#container2').innerWidth();
+  HH = $('#container2').innerHeight();
+  renderer1.clear();
+
+	renderer1.setViewport(0, 0, WW / 2, HH / 2);
+  monitors[0].aspect = WW / HH;
+  monitors[0].updateProjectionMatrix();
+  renderer1.render(scene, monitors[0]);
+  renderer1.render(sceneHUD, cameraHUD);
+  
+  renderer1.setViewport(WW / 2, 0, WW / 2, HH / 2);
+  monitors[1].aspect = WW / HH;
+  monitors[1].updateProjectionMatrix();
+  renderer1.render(scene, monitors[1]);
+  renderer1.render(sceneHUD, cameraHUD);
+  
+  renderer1.setViewport(0, HH / 2, WW / 2, HH / 2);
+  monitors[2].aspect = WW / HH;
+  monitors[2].updateProjectionMatrix();
+  renderer1.render(scene, monitors[2]);
+  renderer1.render(sceneHUD, cameraHUD);
+  
+  renderer1.setViewport(WW / 2, HH / 2, WW / 2, HH / 2);
+  monitors[3].aspect = WW / HH;
+  monitors[3].updateProjectionMatrix();
+  renderer1.render(scene, monitors[3]);
+  renderer1.render(sceneHUD, cameraHUD);
+}
+
+
+</script>
+</body>
+
+</html>
