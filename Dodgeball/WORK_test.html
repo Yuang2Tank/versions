@@ -1796,7 +1796,7 @@ function loadPlayer(n){
   Ins[0].mesh.localToWorld(posF_DB);
   d_ball.mesh.position.copy(posF_DB);
   formateIns(2, n);
-  countDown.counter = 180;
+  countDown.counter = 100;
   countDown();
   pages[1].children[0].material.map.offset.x = (n-1) * 0.2;
   pages[1].children[0].material.map.offset.y = 0.5;
