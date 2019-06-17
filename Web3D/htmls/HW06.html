@@ -132,10 +132,10 @@ var Ball = function (posx, posz) {
 		for(let i = 0; i < obstacles.length; i++){
 		  let sol = Check_Intersect(obstacles[i], this, 10);
 		  if(sol == 1){
-		    this.vel.setX (0);
+		    this.vel.x = -this.vel.x;
 		  }
 		  else if(sol == 2){
-		    this.vel.setZ (0);
+		    this.vel.z = -this.vel.z;
 		  }
 		}
         
