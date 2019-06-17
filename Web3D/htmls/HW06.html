@@ -60,7 +60,7 @@ function hole_ball(ball , hole){
   let xz = new THREE.Vector3();
   xz.copy(ball.mesh.position);
   xz.setY(0);
-  if(xz.distanceTo(hole.position)<15) ball.inHole = true;
+  if(xz.distanceTo(hole.position)<10) ball.inHole = true;
 }
 function Check_Intersect(R, C, Rad)
 {
@@ -284,8 +284,7 @@ function onWindowResize() {
 }
 
 function Contact(ball, plane) {
-  if(!ball.inHole) ball.pos.setY(0); // ball position correction
-  else ball.pos.setY(-5);
+    ball.pos.setY(0); // ball position correction
     let normalW = new THREE.Vector3(0, 1, 0); // local plane normal
  
 	ball.force.copy (gravity.projectOnPlane (normalW));
@@ -303,8 +302,8 @@ function animate() {
     gravity = new THREE.Vector3(0, -180, 0);
     gravity.applyEuler(a);
 	 
-    Contact(ball, plane);
-	Contact(ball1, plane);
+    if(!ball.inHole)Contact(ball, plane);
+	if(!ball1.inHole)Contact(ball1, plane);
 	let dt = clock.getDelta();
     ball.update(dt);
 	ball1.update(dt);
