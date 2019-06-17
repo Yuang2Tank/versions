@@ -42,6 +42,8 @@ var gravity = new THREE.Vector3();
 var deviceInfo, gamma = 0, beta = 0;
 class Obstacle {
   constructor(length, width, posx, posz) {
+    this.length = length;
+	this.width = width;
     this.mesh = new THREE.Mesh(new THREE.BoxGeometry(length, 10, width), new THREE.MeshNormalMaterial());
 	this.mesh.position.x = posx;
 	this.mesh.position.z = posz;
@@ -72,34 +74,54 @@ function Check_Intersect(R, C, Rad)
 
 	if (R.maxx < 0) 			/* R to left of circle center */
 		if (R.maxy < 0) 		/* R in lower left corner */
-			if((R.maxx * R.maxx + R.maxy * R.maxy) < Rad2) return 1;
-			else return 0;
+			if((R.maxx * R.maxx + R.maxy * R.maxy) < Rad2){ 
+			  C.pos.setX(R.position.x  - R.length/2 - Rad);
+			  C.vel.setX (0);
+			}
 		else if (R.miny > 0) 	/* R in upper left corner */
-			if((R.maxx * R.maxx + R.miny * R.miny) < Rad2) return 1;
-			else return 0;
+			if((R.maxx * R.maxx + R.miny * R.miny) < Rad2){ 
+			  C.pos.setX(R.position.x  - R.length/2 - Rad);
+			  C.vel.setX (0);
+			}
 		else 					/* R due West of circle */
-			if(Math.abs(R.maxx) < Rad) return 1;
-			else return 0
+			if(Math.abs(R.maxx) < Rad){ 
+			  C.pos.setX(R.position.x  - R.length/2 - Rad);
+			  C.vel.setX (0);
+			}
 	else if (R.minx > 0)  	/* R to right of circle center */
 		if (R.maxy < 0) 	/* R in lower right corner */
-			if((R.minx * R.minx + R.maxy * R.maxy) < Rad2) return 1;
-			else return 0;
+			if((R.minx * R.minx + R.maxy * R.maxy) < Rad2){ 
+			  C.pos.setX(R.position.x  + R.length/2 + Rad);
+			  C.vel.setX (0);
+			}
 		else if (R.miny > 0)  	/* R in upper right corner */
-			if((R.minx * R.minx + R.miny * R.miny) < Rad2) return 1;
-			else return 0;
+			if((R.minx * R.minx + R.miny * R.miny) < Rad2){ 
+			  C.pos.setX(R.position.x  + R.length/2 + Rad);
+			  C.vel.setX (0);
+			}
 		else 				/* R due East of circle */
-			if(R.minx < Rad) return 1;
-			else return 0;
+			if(R.minx < Rad){ 
+			  C.pos.setX(R.position.x  + R.length/2 + Rad);
+			  C.vel.setX (0);
+			}
 	else				/* R on circle vertical centerline */
 		if (R.maxy < 0) 	/* R due South of circle */
-			if(Math.abs(R.maxy) < Rad) return 2;
-			else return 0;
+			if(Math.abs(R.maxy) < Rad){ 
+			  C.pos.setX(R.position.z  - R.width/2 - Rad);
+			  C.vel.setz (0);
+			}
 		else if (R.miny > 0)  	/* R due North of circle */
-			if(R.miny < Rad) return 2;
-			else return 0;
-		else 				/* R contains circle centerpoint */
-			return 2;
+			if(R.miny < Rad){ 
+			  C.pos.setX(R.position.z  + R.width/2 + Rad);
+			  C.vel.setz (0);
+			}
+		else{ 				/* R contains circle centerpoint */
+			 
+			  C.pos.setX(R.position.x  + R.width/2 + Rad);
+			  C.vel.setX (0);
+			}
 }
+
 // class definitions here
 var Ball = function (posx, posz) {
     // properties
@@ -138,17 +160,10 @@ var Ball = function (posx, posz) {
         }
 		for(let i = 0; i< holes.length; i++)
 		  hole_ball(this, holes[i]);
+		for(let i = 0; i < obstacles.length; i++)
+		  Check_Intersect(obstacles[i], this, 10);
+		  
 	  }
-		/*
-		for(let i = 0; i < obstacles.length; i++){
-		  let sol = Check_Intersect(obstacles[i], this, 10);
-		  if(sol == 1){
-		    this.vel.x = -this.vel.x;
-		  }
-		  else if(sol == 2){
-		    this.vel.z = -this.vel.z;
-		  }
-		}*/
         
         
     }
