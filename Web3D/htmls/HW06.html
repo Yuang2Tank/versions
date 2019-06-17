@@ -35,7 +35,7 @@
 //
 
 var camera, scene, renderer, light;
-var ball, ball1, plane, obstacles = [];
+var ball, ball1, plane, obstacles = [], holes = [];
 var clock = new THREE.Clock();
 var mouse = new THREE.Vector2();
 var gravity = new THREE.Vector3();
@@ -55,6 +55,12 @@ class Obstacle {
     scene.add(this.mesh);
   }
   
+}
+function hole_ball(ball , hole){
+  let xz = new THREE.Vector3();
+  xz.copy(ball.mesh.position);
+  xz.setY(0);
+  if(xz.distanceTo(hole.position)<15) ball.inHole = true;
 }
 function Check_Intersect(R, C, Rad)
 {
@@ -100,6 +106,7 @@ var Ball = function (posx, posz) {
     this.pos = new THREE.Vector3(posx, 0, posz);
     this.vel = new THREE.Vector3();
     this.force = new THREE.Vector3();
+	this.inHole = false;
     this.mesh = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 32), new THREE.MeshPhongMaterial({
         color: 0xff1234,
         specular: 0x444444,
@@ -109,6 +116,7 @@ var Ball = function (posx, posz) {
 
     // methods
     this.update = function (dt) {
+	  if(!this.inHole){
         this.vel.add(this.force.clone().multiplyScalar(dt));
         this.pos.add(this.vel.clone().multiplyScalar(dt));
         this.mesh.position.copy(this.pos);
@@ -128,7 +136,10 @@ var Ball = function (posx, posz) {
             this.pos.setZ (-90);
             this.vel.setZ (0);
         }
-		
+		for(let i = 0; i< holes.length; i++)
+		  hole_ball(ball, holes[i]);
+	  }
+		/*
 		for(let i = 0; i < obstacles.length; i++){
 		  let sol = Check_Intersect(obstacles[i], this, 10);
 		  if(sol == 1){
@@ -137,7 +148,7 @@ var Ball = function (posx, posz) {
 		  else if(sol == 2){
 		    this.vel.z = -this.vel.z;
 		  }
-		}
+		}*/
         
         
     }
@@ -200,13 +211,30 @@ function init() {
     obstacles.push(ob);
 	/////////////////////////////////////////
 	//////////////Holes//////////////////////
-	let circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0xffff00 } ) );
+	let circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0x10ff10 } ) );
+	holes.push(circle);
 	circle.rotation.x = - Math.PI/2;
 	circle.position.set( 80 ,0 , -80);
 	scene.add( circle );
-	circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0xffff00 } ) );
+	circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0x10ff10 } ) );
+	holes.push(circle);
 	circle.rotation.x = - Math.PI/2;
 	circle.position.set(-70 ,0 ,-10);
+	scene.add( circle );
+	circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0xff1010 } ) );
+	holes.push(circle);
+	circle.rotation.x = - Math.PI/2;
+	circle.position.set(-80 ,0 ,-80);
+	scene.add( circle );
+	circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0xff1010 } ) );
+	holes.push(circle);
+	circle.rotation.x = - Math.PI/2;
+	circle.position.set(70 ,0 ,-20);
+	scene.add( circle );
+	circle = new THREE.Mesh( new THREE.CircleGeometry( 15, 32 ), new THREE.MeshBasicMaterial( { color: 0xff1010 } ) );
+	holes.push(circle);
+	circle.rotation.x = - Math.PI/2;
+	circle.position.set(0 ,0 ,85);
 	scene.add( circle );
 	/////////////////////////////////////////
     light = new THREE.PointLight(0xffffff);
@@ -256,10 +284,10 @@ function onWindowResize() {
 }
 
 function Contact(ball, plane) {
-
-    ball.pos.setY(0); // ball position correction
+  if(!ball.inHole) ball.pos.setY(0); // ball position correction
+  else ball.pos.setY(-5);
     let normalW = new THREE.Vector3(0, 1, 0); // local plane normal
- 	
+ 
 	ball.force.copy (gravity.projectOnPlane (normalW));
 }
 
