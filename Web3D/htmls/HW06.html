@@ -49,77 +49,40 @@ class Obstacle {
 	this.mesh.position.z = posz;
 	
 	this.maxx = posx + length/2;
-	this.maxy = posz + width/2;
+	this.maxz = posz + width/2;
 	this.minx = posx - length/2;
-	this.miny = posz - width/2;
+	this.minz = posz - width/2;
 	
     this.mesh.position.y = 5;
     scene.add(this.mesh);
   }
   
 }
+
 function hole_ball(ball123 , hole){
   let xz = new THREE.Vector3();
   xz.copy(ball123.mesh.position);
   xz.setY(0);
   if(xz.distanceTo(hole.position)<10) ball123.inHole = true;
 }
-function Check_Intersect(R, C, Rad)
+function Check_Intersect(obst, ball, Rad)
 {
-	let Rad2 = Rad * Rad;
-
-	/* Translate coordinates, placing C at the origin. */
-	R.maxx -= C.mesh.position.x;  R.maxy -= C.mesh.position.z;
-	R.minx -= C.mesh.position.x;  R.miny -= C.mesh.position.z;
-
-	if (R.maxx < 0) 			/* R to left of circle center */
-		if (R.maxy < 0) 		/* R in lower left corner */
-			if((R.maxx * R.maxx + R.maxy * R.maxy) < Rad2){ 
-			  C.pos.setX(R.position.x  - R.length/2 - Rad);
-			  C.vel.setX (0);
-			}
-		else if (R.miny > 0) 	/* R in upper left corner */
-			if((R.maxx * R.maxx + R.miny * R.miny) < Rad2){ 
-			  C.pos.setX(R.position.x  - R.length/2 - Rad);
-			  C.vel.setX (0);
-			}
-		else 					/* R due West of circle */
-			if(Math.abs(R.maxx) < Rad){ 
-			  C.pos.setX(R.position.x  - R.length/2 - Rad);
-			  C.vel.setX (0);
-			}
-	else if (R.minx > 0)  	/* R to right of circle center */
-		if (R.maxy < 0) 	/* R in lower right corner */
-			if((R.minx * R.minx + R.maxy * R.maxy) < Rad2){ 
-			  C.pos.setX(R.position.x  + R.length/2 + Rad);
-			  C.vel.setX (0);
-			}
-		else if (R.miny > 0)  	/* R in upper right corner */
-			if((R.minx * R.minx + R.miny * R.miny) < Rad2){ 
-			  C.pos.setX(R.position.x  + R.length/2 + Rad);
-			  C.vel.setX (0);
-			}
-		else 				/* R due East of circle */
-			if(R.minx < Rad){ 
-			  C.pos.setX(R.position.x  + R.length/2 + Rad);
-			  C.vel.setX (0);
-			}
-	else				/* R on circle vertical centerline */
-		if (R.maxy < 0) 	/* R due South of circle */
-			if(Math.abs(R.maxy) < Rad){ 
-			  C.pos.setX(R.position.z  - R.width/2 - Rad);
-			  C.vel.setz (0);
-			}
-		else if (R.miny > 0)  	/* R due North of circle */
-			if(R.miny < Rad){ 
-			  C.pos.setX(R.position.z  + R.width/2 + Rad);
-			  C.vel.setz (0);
-			}
-		else{ 				/* R contains circle centerpoint */
-			 
-			  C.pos.setX(R.position.x  + R.width/2 + Rad);
-			  C.vel.setX (0);
-			}
+	if((ball.pos.z - obst.maxz) > 0 && (ball.pos.z - obst.maxz) < Rad && ball.pos.x < obst.maxx && ball.pos.x > obst.minx){//Z+
+		ball.pos.setZ (obst.maxz + Rad);
+		ball.vel.setZ (0);
+	} 
+	else if((obst.minz - ball.pos.z) > 0 &&(obst.minz - ball.pos.z) < Rad && ball.pos.x < obst.maxx && ball.pos.x > obst.minx){//Z-
+		ball.pos.setZ (obst.minz - Rad);
+		ball.vel.setZ (0);
+	} //z-
+	else if((ball.pos.x - obst.maxx) > 0 && (ball.pos.x - obst.maxx) < Rad && ball.pos.z < obst.maxz && ball.pos.z > obst.minz){//X+
+		ball.pos.setx (obst.maxx + Rad);
+		ball.vel.setx (0);
+	} //X+
+	else if((obst.minx - ball.pos.x) > 0 &&(obst.minx - ball.pos.x) < Rad && ball.pos.z < obst.maxz && ball.pos.z < obst.minz){//X-
+		ball.pos.setx (obst.minx - Rad);
+		ball.vel.setx (0);
+	} //X-
 }
 
 // class definitions here
@@ -167,6 +130,38 @@ var Ball = function (posx, posz) {
         
         
     }
+	this.collidingWalls = function(walls){
+			const EPS = 1e-3
+			const CR = 0.98
+			for (let i = 0; i < walls.length; i++) {
+			  let wall = walls[i]
+			  let pointL = this.pos.clone().sub (wall.ptOnPlL);
+			  let pointR = this.pos.clone().sub (wall.ptOnPlR);
+			  let pointF = this.pos.clone().sub (wall.ptOnPlF);
+			  let pointB = this.pos.clone().sub (wall.ptOnPlB);
+			  //console.log(pointR)
+			  //左邊
+			  if ( pointL.x < 0 &&  pointL.dot(wall.normalL) < EPS + this.radius && pointL.projectOnPlane (wall.normalL).length() < wall.width/2 + this.radius + EPS) {
+				this.pos.setX(wall.pos.x  - wall.length/2 - this.radius );
+				this.vel.setX (0);
+			  } 
+			  //右邊
+			  if ( pointR.x > EPS && pointR.dot(wall.normalR) < EPS + this.radius&& pointR.projectOnPlane (wall.normalR).length() < wall.width/2  + this.radius + EPS) {
+				this.pos.setX(wall.pos.x + wall.length/2 + this.radius );
+				this.vel.setX (0);
+			  } 
+			  //前面
+			  if (pointF.z > EPS &&pointF.dot(wall.normalF) < EPS + this.radius && pointF.projectOnPlane (wall.normalF).length() < wall.length/2 + this.radius + EPS) {
+				this.pos.setZ (wall.pos.z + wall.width/2 + this.radius );
+				this.vel.setZ (0);
+			  }
+			  //後面
+			  if (pointB.z < 0&& pointB.dot(wall.normalB) < EPS + this.radius && pointB.projectOnPlane (wall.normalB).length() < wall.length/2  + this.radius + EPS) {
+				this.pos.setZ (wall.pos.z - wall.width/2 - this.radius );
+				this.vel.setZ (0);
+			  }
+			}
+		  }
 }
 
 var Plane = function () {
@@ -304,6 +299,12 @@ function Contact(ball, plane) {
  
 	ball.force.copy (gravity.projectOnPlane (normalW));
 }
+function Contact2(ball, plane) {
+    ball.pos.setY(-5); // ball position correction
+    let normalW = new THREE.Vector3(0, 1, 0); // local plane normal
+ 
+	ball.force.copy (gravity.projectOnPlane (normalW));
+}
 
 function animate() {
     deviceInfo.innerHTML = '[gamma: ' + gamma.toFixed(2) + '], [beta: ' 
@@ -318,7 +319,9 @@ function animate() {
     gravity.applyEuler(a);
 	 
     if(!ball.inHole)Contact(ball, plane);
+	else Contact2(ball, plane);
 	if(!ball1.inHole)Contact(ball1, plane);
+	else Contact2(ball1, plane);
 	let dt = clock.getDelta();
     ball.update(dt);
 	ball1.update(dt);
