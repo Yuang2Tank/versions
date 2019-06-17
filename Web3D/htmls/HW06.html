@@ -68,19 +68,19 @@ function hole_ball(ball123 , hole){
 function Check_Intersect(obst, ball, Rad)
 {
 	if((ball.pos.z - obst.maxz) > 0 && (ball.pos.z - obst.maxz) < Rad && ball.pos.x < obst.maxx && ball.pos.x > obst.minx){//Z+
-		ball.pos.setZ (obst.maxz + Rad);
+		ball.pos.setZ (obst.maxz + Rad+1);
 		ball.vel.setZ (0);
 	} 
 	else if((obst.minz - ball.pos.z) > 0 &&(obst.minz - ball.pos.z) < Rad && ball.pos.x < obst.maxx && ball.pos.x > obst.minx){//Z-
-		ball.pos.setZ (obst.minz - Rad);
+		ball.pos.setZ (obst.minz - Rad-1);
 		ball.vel.setZ (0);
 	} //z-
 	else if((ball.pos.x - obst.maxx) > 0 && (ball.pos.x - obst.maxx) < Rad && ball.pos.z < obst.maxz && ball.pos.z > obst.minz){//X+
-		ball.pos.setx (obst.maxx + Rad);
+		ball.pos.setx (obst.maxx + Rad+1);
 		ball.vel.setx (0);
 	} //X+
 	else if((obst.minx - ball.pos.x) > 0 &&(obst.minx - ball.pos.x) < Rad && ball.pos.z < obst.maxz && ball.pos.z < obst.minz){//X-
-		ball.pos.setx (obst.minx - Rad);
+		ball.pos.setx (obst.minx - Rad-1);
 		ball.vel.setx (0);
 	} //X-
 }
