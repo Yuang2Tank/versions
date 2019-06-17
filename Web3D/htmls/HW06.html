@@ -56,11 +56,11 @@ class Obstacle {
   }
   
 }
-function hole_ball(ball , hole){
+function hole_ball(ball123 , hole){
   let xz = new THREE.Vector3();
-  xz.copy(ball.mesh.position);
+  xz.copy(ball123.mesh.position);
   xz.setY(0);
-  if(xz.distanceTo(hole.position)<10) ball.inHole = true;
+  if(xz.distanceTo(hole.position)<10) ball123.inHole = true;
 }
 function Check_Intersect(R, C, Rad)
 {
@@ -137,7 +137,7 @@ var Ball = function (posx, posz) {
             this.vel.setZ (0);
         }
 		for(let i = 0; i< holes.length; i++)
-		  hole_ball(ball, holes[i]);
+		  hole_ball(this, holes[i]);
 	  }
 		/*
 		for(let i = 0; i < obstacles.length; i++){
