@@ -168,8 +168,7 @@ function unitize (object, targetSize) {
 		} else { // v.y > v.x
 			return v.y > v.z ? v.y : v.z;
 		} 
-	}
-			
+	}		
 }
 
 
@@ -204,7 +203,7 @@ function init() {
   scene.add(directionalLight);
   
   // model
-    var onProgress = function(xhr) {
+  var onProgress = function(xhr) {
     if (xhr.lengthComputable) {
       var percentComplete = xhr.loaded / xhr.total * 100;
 	  //$('#download').text(Math.round(percentComplete, 2) + "%");
